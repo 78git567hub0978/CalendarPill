@@ -1,0 +1,494 @@
+:root {
+  color-scheme: light;
+  --bg: #2b2b2b;
+  --panel: #171717;
+  --ink: #f7f4ec;
+  --muted: #aaa39a;
+  --line: #2a2a2a;
+  --accent: #00e676;
+  --accent-dark: #00c853;
+  --accent-soft: #123b34;
+  --future: #2f80ed;
+  --missed: #d84d4d;
+  --off-schedule: #ff1493;
+  --early: #b967ff;
+  --header-upcoming: #123d75;
+  --header-missed: #5b1717;
+  --header-off-schedule: #ff1493;
+  --rose: #ff3b30;
+  --shadow: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--panel);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  letter-spacing: 0;
+  background: var(--bg);
+}
+
+button {
+  border: 0;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell {
+  width: min(100%, 430px);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: max(18px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+}
+
+.status-strip,
+.reminder-strip,
+.month-controls,
+.detail-panel,
+.detail-actions {
+  display: flex;
+  align-items: center;
+}
+
+.eyebrow,
+.status-label {
+  margin: 0 0 3px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-strip .status-label {
+  color: var(--off-schedule);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 2rem;
+  line-height: 1.08;
+}
+
+h2 {
+  min-width: 0;
+  flex: 1;
+  text-align: center;
+  font-size: 1.18rem;
+}
+
+h3 {
+  margin-bottom: 5px;
+  font-size: 1.08rem;
+}
+
+.icon-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #151515;
+  box-shadow: none;
+}
+
+.icon-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.status-strip {
+  justify-content: center;
+  gap: 0;
+  min-height: 76px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--off-schedule);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.status-strip.is-upcoming-dose {
+  border-color: transparent;
+  background: var(--panel);
+}
+
+.status-strip.is-missed-dose {
+  border-color: transparent;
+  background: var(--panel);
+}
+
+.status-strip.is-off-schedule-dose {
+  border-color: transparent;
+  background: var(--panel);
+}
+
+.status-strip strong {
+  display: inline;
+  color: var(--off-schedule);
+  font-size: 1.75rem;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.timer-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.timer-line span {
+  color: var(--off-schedule);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.reminder-strip {
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 62px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.reminder-strip p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.primary-action,
+.secondary-action {
+  min-height: 44px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.primary-action {
+  min-width: 96px;
+  padding: 0 18px;
+  color: #050505;
+  background: var(--future);
+}
+
+.primary-action:active {
+  background: #1f65bd;
+}
+
+.primary-action:disabled {
+  opacity: 1;
+}
+
+.primary-action.is-on-time {
+  background: var(--accent);
+}
+
+.primary-action.is-late {
+  background: var(--off-schedule);
+}
+
+.primary-action.is-early {
+  background: var(--early);
+}
+
+.primary-action.is-missed {
+  background: var(--missed);
+}
+
+.secondary-action {
+  min-width: 78px;
+  padding: 0 15px;
+  color: var(--rose);
+  border: 1px solid rgba(255, 59, 48, 0.52);
+  background: #260807;
+}
+
+.secondary-action.is-enabled {
+  color: #050505;
+  border-color: transparent;
+  background: var(--accent);
+}
+
+.icon-only-action {
+  display: grid;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  place-items: center;
+}
+
+.icon-only-action svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.month-panel,
+.detail-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.month-panel {
+  padding: 12px;
+}
+
+.month-controls {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.weekday-row,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.weekday-row {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-grid {
+  gap: 6px;
+}
+
+.legend-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  list-style: none;
+}
+
+.legend-list li {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 999px;
+}
+
+.legend-dot.is-taken {
+  background: var(--accent);
+}
+
+.legend-dot.is-off-schedule {
+  background: var(--off-schedule);
+}
+
+.legend-dot.is-missed {
+  background: var(--missed);
+}
+
+.legend-dot.is-future {
+  background: var(--future);
+}
+
+.day {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ink);
+  background: transparent;
+}
+
+.day time {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.today-caption {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 22px);
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.day.is-outside {
+  color: #5f5b55;
+  background: transparent;
+}
+
+.day.is-today time {
+  color: #050505;
+  background: var(--ink);
+}
+
+.day.is-selected {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.day.is-selected time {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.day.is-taken {
+  background: transparent;
+}
+
+.day.is-taken::after {
+  content: none;
+}
+
+.day.is-taken time {
+  color: #050505;
+  background: var(--accent);
+}
+
+.day.is-taken.is-today time {
+  color: #050505;
+  background: var(--accent);
+}
+
+.day.is-taken.is-off-schedule time {
+  color: #050505;
+  background: var(--off-schedule);
+}
+
+.day.is-taken.is-early time {
+  color: #050505;
+  background: var(--early);
+}
+
+.day.is-future time {
+  color: #050505;
+  background: var(--future);
+}
+
+.day.is-missed time {
+  color: #050505;
+  background: var(--missed);
+}
+
+.detail-panel {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.detail-panel p:last-child {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.detail-panel p:last-child span {
+  display: block;
+}
+
+.timing-detail {
+  margin-top: 3px;
+  color: var(--off-schedule);
+  font-weight: 800;
+}
+
+.timing-detail.is-on-time {
+  color: var(--accent);
+}
+
+.timing-detail.is-early {
+  color: var(--early);
+}
+
+.missed-detail {
+  color: var(--missed) !important;
+  font-weight: 800;
+}
+
+.detail-actions {
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+@media (max-width: 370px) {
+  .app-shell {
+    padding-inline: 12px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .detail-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .detail-actions button {
+    flex: 1;
+  }
+}
