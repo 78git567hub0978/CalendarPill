@@ -51,7 +51,6 @@ button {
 }
 
 .status-strip,
-.reminder-strip,
 .month-controls,
 .detail-panel,
 .detail-actions {
@@ -151,7 +150,7 @@ h3 {
 .status-strip strong {
   display: inline;
   color: var(--off-schedule);
-  font-size: 1.75rem;
+  font-size: clamp(1.35rem, 7vw, 1.75rem);
   line-height: 1.05;
   white-space: nowrap;
 }
@@ -160,32 +159,16 @@ h3 {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   margin-top: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .timer-line span {
   color: var(--off-schedule);
-  font-size: 0.88rem;
+  font-size: clamp(0.72rem, 3.45vw, 0.88rem);
   font-weight: 700;
-}
-
-.reminder-strip {
-  justify-content: space-between;
-  gap: 14px;
-  min-height: 62px;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-}
-
-.reminder-strip p {
-  color: var(--muted);
-  font-size: 0.92rem;
-  font-weight: 800;
 }
 
 .primary-action,
@@ -232,32 +215,6 @@ h3 {
   color: var(--rose);
   border: 1px solid rgba(255, 59, 48, 0.52);
   background: #260807;
-}
-
-.secondary-action.is-enabled {
-  color: #050505;
-  border-color: transparent;
-  background: var(--accent);
-}
-
-.icon-only-action {
-  display: grid;
-  width: 44px;
-  min-width: 44px;
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-  place-items: center;
-}
-
-.icon-only-action svg {
-  width: 19px;
-  height: 19px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
 }
 
 .month-panel,
@@ -460,6 +417,10 @@ h3 {
   color: var(--early);
 }
 
+.notes-detail {
+  margin-top: 3px;
+}
+
 .missed-detail {
   color: var(--missed) !important;
   font-weight: 800;
@@ -468,6 +429,54 @@ h3 {
 .detail-actions {
   flex-shrink: 0;
   gap: 8px;
+}
+
+.edit-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.edit-dialog[hidden] {
+  display: none;
+}
+
+.edit-dialog__panel {
+  width: min(100%, 330px);
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: center;
+}
+
+.edit-dialog__panel h2 {
+  margin-bottom: 18px;
+  font-size: 1.25rem;
+}
+
+.edit-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dialog-action {
+  min-height: 46px;
+  border-radius: 999px;
+  color: #050505;
+  font-weight: 900;
+}
+
+.dialog-action--no {
+  background: var(--missed);
+}
+
+.dialog-action--yes {
+  background: var(--accent);
 }
 
 @media (max-width: 370px) {

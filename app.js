@@ -1,5 +1,4 @@
 const storageKey = "pill-calendar-logs";
-const reminderKey = "pill-calendar-reminders-enabled";
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   month: "long",
@@ -14,7 +13,6 @@ const today = stripTime(new Date());
 let viewedMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDate = today;
 let logs = readLogs();
-let reminderTimers = [];
 
 const calendarGrid = document.querySelector("#calendarGrid");
 const monthTitle = document.querySelector("#monthTitle");
@@ -24,9 +22,10 @@ const scheduleStatus = document.querySelector("#scheduleStatus");
 const selectedTitle = document.querySelector("#selectedTitle");
 const selectedMeta = document.querySelector("#selectedMeta");
 const markTakenButton = document.querySelector("#markTakenButton");
-const editButton = document.querySelector("#editButton");
-const reminderStatus = document.querySelector("#reminderStatus");
-const reminderButton = document.querySelector("#reminderButton");
+const editDialog = document.querySelector("#editDialog");
+const editNoButton = document.querySelector("#editNoButton");
+const editYesButton = document.querySelector("#editYesButton");
+let editDialogResolver = null;
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() - 1, 1);
@@ -38,18 +37,15 @@ document.querySelector("#nextMonth").addEventListener("click", () => {
   render();
 });
 
-markTakenButton.addEventListener("click", () => markTaken(selectedDate));
-
-editButton.addEventListener("click", editTakenTime);
-
-reminderButton.addEventListener("click", toggleReminders);
+markTakenButton.addEventListener("click", handleMarkButtonClick);
+editNoButton.addEventListener("click", () => closeEditDialog(false));
+editYesButton.addEventListener("click", () => closeEditDialog(true));
 
 function render() {
   monthTitle.textContent = monthFormatter.format(viewedMonth);
   renderCalendar();
   renderDetails();
   renderCountdown();
-  renderReminderState();
 }
 
 function renderCalendar() {
@@ -109,8 +105,7 @@ function renderDetails() {
   selectedTitle.textContent = dateFormatter.format(selectedDate);
   renderSelectedMeta(loggedAt, selectedDate);
   renderMarkButton(loggedAt, selectedDate);
-  markTakenButton.disabled = Boolean(loggedAt);
-  editButton.disabled = !loggedAt;
+  markTakenButton.disabled = false;
 }
 
 function renderMarkButton(loggedAt, date) {
@@ -130,7 +125,6 @@ function renderMarkButton(loggedAt, date) {
   markTakenButton.classList.remove("is-on-time", "is-late", "is-early", "is-missed");
   if (statusClass) markTakenButton.classList.add(statusClass);
   markTakenButton.textContent = label;
-  markTakenButton.disabled = Boolean(loggedAt);
 }
 
 function renderSelectedMeta(loggedAt, date) {
@@ -145,12 +139,16 @@ function renderSelectedMeta(loggedAt, date) {
 
   const takenLine = document.createElement("span");
   const timingLine = document.createElement("span");
+  const notesLine = document.createElement("span");
   const timing = getTimingDetail(loggedAt, date);
+  const notes = getLogNotes(loggedAt);
   selectedMeta.className = "";
-  takenLine.textContent = `Taken at ${formatTime(new Date(loggedAt))}.`;
+  takenLine.textContent = `Taken at ${formatTime(new Date(getLogTakenAt(loggedAt)))}.`;
   timingLine.className = `timing-detail ${getTakenStatusClass(timing)}`.trim();
   timingLine.textContent = timing;
-  selectedMeta.append(takenLine, timingLine);
+  notesLine.className = "notes-detail";
+  notesLine.textContent = notes ? `Notes: ${notes}` : "No notes";
+  selectedMeta.append(takenLine, timingLine, notesLine);
 }
 
 function renderCountdown() {
@@ -171,35 +169,79 @@ function renderCountdown() {
 }
 
 function markTaken(date) {
-  logs[toKey(date)] = new Date().toISOString();
+  setLogEntry(date, new Date(), "");
   writeLogs();
   render();
-  scheduleReminders();
 }
 
-function editTakenTime() {
+async function handleMarkButtonClick() {
   const key = toKey(selectedDate);
-  const loggedAt = logs[key];
 
-  if (!loggedAt) return;
+  if (!logs[key]) {
+    markTaken(selectedDate);
+    return;
+  }
 
-  const currentTime = formatInputTime(new Date(loggedAt));
-  const updatedTime = prompt("Edit taken time", currentTime);
+  if (await confirmEdit()) {
+    editLogEntry(key);
+  }
+}
 
-  if (!updatedTime) return;
+function confirmEdit() {
+  editDialog.hidden = false;
+  editYesButton.focus();
 
-  const parsedTime = parseInputTime(updatedTime);
+  return new Promise((resolve) => {
+    editDialogResolver = resolve;
+  });
+}
+
+function closeEditDialog(confirmed) {
+  editDialog.hidden = true;
+
+  if (editDialogResolver) {
+    editDialogResolver(confirmed);
+    editDialogResolver = null;
+  }
+}
+
+function editLogEntry(key) {
+  const entry = logs[key];
+  const takenAt = new Date(getLogTakenAt(entry));
+  const editedDate = prompt("Edit date", key);
+
+  if (!editedDate) return;
+
+  const parsedDate = parseInputDate(editedDate);
+  if (!parsedDate) {
+    alert("Use a date like 2026-07-04.");
+    return;
+  }
+
+  const editedTime = prompt("Edit time", formatInputTime(takenAt));
+  if (!editedTime) return;
+
+  const parsedTime = parseInputTime(editedTime);
   if (!parsedTime) {
     alert("Use a time like 7:05 AM or 19:05.");
     return;
   }
 
-  const updatedDate = new Date(selectedDate);
+  const editedNotes = prompt("Add notes", getLogNotes(entry));
+  if (editedNotes === null) return;
+
+  const updatedDate = new Date(parsedDate);
   updatedDate.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
-  logs[key] = updatedDate.toISOString();
+
+  if (key !== toKey(updatedDate)) {
+    delete logs[key];
+  }
+
+  setLogEntry(updatedDate, updatedDate, editedNotes.trim());
+  selectedDate = stripTime(updatedDate);
+  viewedMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
   writeLogs();
   render();
-  scheduleReminders();
 }
 
 function getDayLabel(date) {
@@ -217,6 +259,21 @@ function readLogs() {
 
 function writeLogs() {
   localStorage.setItem(storageKey, JSON.stringify(logs));
+}
+
+function setLogEntry(date, takenAt, notes) {
+  logs[toKey(date)] = {
+    takenAt: takenAt.toISOString(),
+    notes,
+  };
+}
+
+function getLogTakenAt(entry) {
+  return typeof entry === "string" ? entry : entry?.takenAt;
+}
+
+function getLogNotes(entry) {
+  return typeof entry === "string" ? "" : entry?.notes || "";
 }
 
 function stripTime(date) {
@@ -239,6 +296,23 @@ function formatInputTime(date) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function parseInputDate(value) {
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(year, month, day);
+
+  if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+    return null;
+  }
+
+  return date;
 }
 
 function parseInputTime(value) {
@@ -265,7 +339,7 @@ function parseInputTime(value) {
 }
 
 function getTimingDetail(loggedAt, date) {
-  const takenAt = new Date(loggedAt);
+  const takenAt = new Date(getLogTakenAt(loggedAt));
   const scheduledAt = getScheduledDoseTime(date);
   const differenceMs = takenAt - scheduledAt;
   return formatTimingDifference(differenceMs);
@@ -292,7 +366,7 @@ function getScheduledDoseTime(date) {
 }
 
 function isOutsideScheduleWindow(loggedAt, date) {
-  const takenAt = new Date(loggedAt);
+  const takenAt = new Date(getLogTakenAt(loggedAt));
   const scheduledAt = new Date(date);
   scheduledAt.setHours(7, 0, 0, 0);
 
@@ -384,128 +458,5 @@ function formatRelativeDoseDay(date) {
   return date.toLocaleDateString([], { weekday: "long" });
 }
 
-function renderReminderState() {
-  reminderButton.classList.remove("is-enabled");
-
-  if (!supportsNotifications()) {
-    reminderStatus.textContent = "Browser alerts unavailable";
-    reminderButton.textContent = "Unavailable";
-    reminderButton.disabled = true;
-    return;
-  }
-
-  reminderButton.disabled = false;
-
-  if (Notification.permission === "denied") {
-    reminderStatus.textContent = "Notifications blocked";
-    reminderButton.textContent = "Blocked";
-    reminderButton.disabled = true;
-    return;
-  }
-
-  if (remindersEnabled()) {
-    reminderStatus.textContent = "6:50 AM and 7:00 AM";
-    reminderButton.textContent = "Enabled";
-    reminderButton.classList.add("is-enabled");
-    return;
-  }
-
-  reminderStatus.textContent = "Alerts off";
-  reminderButton.textContent = "Enable";
-}
-
-async function toggleReminders() {
-  if (remindersEnabled()) {
-    localStorage.removeItem(reminderKey);
-    clearReminderTimers();
-    renderReminderState();
-    return;
-  }
-
-  if (!supportsNotifications()) {
-    renderReminderState();
-    return;
-  }
-
-  let permission = Notification.permission;
-  if (permission === "default") {
-    permission = await Notification.requestPermission();
-  }
-
-  if (permission === "granted") {
-    localStorage.setItem(reminderKey, "true");
-    scheduleReminders();
-  }
-
-  renderReminderState();
-}
-
-function remindersEnabled() {
-  return supportsNotifications()
-    && Notification.permission === "granted"
-    && localStorage.getItem(reminderKey) === "true";
-}
-
-function supportsNotifications() {
-  return "Notification" in window;
-}
-
-function scheduleReminders() {
-  clearReminderTimers();
-
-  if (!remindersEnabled()) return;
-
-  const now = new Date();
-  const reminderTimes = getUpcomingReminderTimes(now);
-
-  reminderTimes.forEach((reminder) => {
-    const delay = reminder.time - now;
-    const timerId = setTimeout(() => {
-      sendDoseNotification(reminder.kind);
-      scheduleReminders();
-    }, delay);
-    reminderTimers.push(timerId);
-  });
-}
-
-function clearReminderTimers() {
-  reminderTimers.forEach((timerId) => clearTimeout(timerId));
-  reminderTimers = [];
-}
-
-function getUpcomingReminderTimes(now) {
-  const exactTime = getNextDoseTime(now);
-  const warningTime = new Date(exactTime);
-  warningTime.setMinutes(warningTime.getMinutes() - 10);
-
-  const reminders = [];
-  if (warningTime > now) {
-    reminders.push({ kind: "warning", time: warningTime });
-  }
-  if (exactTime > now) {
-    reminders.push({ kind: "exact", time: exactTime });
-  }
-
-  return reminders;
-}
-
-function sendDoseNotification(kind) {
-  if (!remindersEnabled()) return;
-  if (logs[toKey(new Date())]) return;
-
-  const title = kind === "warning"
-    ? "Pill due in 10 minutes"
-    : "Time to take your pill";
-  const body = kind === "warning"
-    ? "Your daily 7:00 AM dose is coming up."
-    : "It is 7:00 AM. Mark your pill as taken.";
-
-  new Notification(title, {
-    body,
-    tag: `pill-calendar-${kind}-${toKey(new Date())}`,
-  });
-}
-
 render();
 setInterval(renderCountdown, 1000);
-scheduleReminders();

@@ -16,14 +16,6 @@
         </div>
       </section>
 
-      <section class="reminder-strip" aria-label="Notification reminders">
-        <div>
-          <span class="status-label">Alerts</span>
-          <p id="reminderStatus">Alerts off</p>
-        </div>
-        <button id="reminderButton" class="secondary-action" type="button">Enable</button>
-      </section>
-
       <section class="month-panel" aria-label="Medication calendar">
         <div class="month-controls">
           <button class="icon-button" id="prevMonth" type="button" aria-label="Previous month">
@@ -63,15 +55,19 @@
         </div>
         <div class="detail-actions">
           <button id="markTakenButton" class="primary-action" type="button">Mark taken</button>
-          <button id="editButton" class="secondary-action icon-only-action" type="button" aria-label="Edit taken time">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M12 20h9"/>
-              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-            </svg>
-          </button>
         </div>
       </section>
     </main>
+
+    <div class="edit-dialog" id="editDialog" hidden>
+      <div class="edit-dialog__panel" role="dialog" aria-modal="true" aria-labelledby="editDialogTitle">
+        <h2 id="editDialogTitle">Do you want to edit?</h2>
+        <div class="edit-dialog__actions">
+          <button id="editNoButton" class="dialog-action dialog-action--no" type="button">NO</button>
+          <button id="editYesButton" class="dialog-action dialog-action--yes" type="button">YES</button>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>
