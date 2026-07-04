@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f7f3ea">
+    <title>Pill Calendar</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell" aria-label="Pill calendar logger">
+      <section class="status-strip" aria-live="polite">
+        <div>
+          <span class="status-label">Next dose is tomorrow at 7:00 AM</span>
+          <p class="timer-line"><strong id="countdownStatus">Calculating</strong><span id="scheduleStatus">remaining until next dose</span></p>
+        </div>
+      </section>
+
+      <section class="reminder-strip" aria-label="Notification reminders">
+        <div>
+          <span class="status-label">Alerts</span>
+          <p id="reminderStatus">Alerts off</p>
+        </div>
+        <button id="reminderButton" class="secondary-action" type="button">Enable</button>
+      </section>
+
+      <section class="month-panel" aria-label="Medication calendar">
+        <div class="month-controls">
+          <button class="icon-button" id="prevMonth" type="button" aria-label="Previous month">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <h2 id="monthTitle"></h2>
+          <button class="icon-button" id="nextMonth" type="button" aria-label="Next month">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+
+        <div class="weekday-row" aria-hidden="true">
+          <span>Sun</span>
+          <span>Mon</span>
+          <span>Tue</span>
+          <span>Wed</span>
+          <span>Thu</span>
+          <span>Fri</span>
+          <span>Sat</span>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <ul class="legend-list" aria-label="Calendar color legend">
+          <li><span class="legend-dot is-taken"></span>Taken</li>
+          <li><span class="legend-dot is-off-schedule"></span>Taken late</li>
+          <li><span class="legend-dot is-missed"></span>Missed</li>
+          <li><span class="legend-dot is-future"></span>Upcoming</li>
+        </ul>
+      </section>
+
+      <section class="detail-panel" aria-label="Selected day details">
+        <div>
+          <p class="eyebrow">Selected day</p>
+          <h3 id="selectedTitle"></h3>
+          <p id="selectedMeta"></p>
+        </div>
+        <div class="detail-actions">
+          <button id="markTakenButton" class="primary-action" type="button">Mark taken</button>
+          <button id="editButton" class="secondary-action icon-only-action" type="button" aria-label="Edit taken time">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
