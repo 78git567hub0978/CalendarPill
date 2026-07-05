@@ -147,12 +147,6 @@ button {
   color: var(--off-schedule);
 }
 
-.status-strip .schedule-label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--muted);
-}
-
 h1,
 h2,
 h3,

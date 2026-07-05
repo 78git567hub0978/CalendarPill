@@ -62,7 +62,6 @@ console.log("auth gate element:", authGate);
 const calendarGrid = document.querySelector("#calendarGrid");
 const monthTitle = document.querySelector("#monthTitle");
 const statusStrip = document.querySelector(".status-strip");
-const headerScheduleLabel = document.querySelector("#headerScheduleLabel");
 const countdownStatus = document.querySelector("#countdownStatus");
 const scheduleStatus = document.querySelector("#scheduleStatus");
 const selectedTitle = document.querySelector("#selectedTitle");
@@ -567,7 +566,6 @@ function renderCountdown() {
   statusStrip.classList.toggle("is-missed-dose", missedToday);
   statusStrip.classList.toggle("is-off-schedule-dose", Boolean(offScheduleToday));
   statusStrip.classList.toggle("is-upcoming-dose", !missedToday && !offScheduleToday);
-  headerScheduleLabel.textContent = formatHeaderScheduleLabel(today);
   document.querySelector(".status-label").textContent = nextDose ? formatNextDoseSentence(nextDose) : "Schedule ended";
   countdownStatus.textContent = nextDose ? formatCountdown(remainingMs) : "Ended";
   scheduleStatus.textContent = nextDose ? "remaining until next dose" : "";
