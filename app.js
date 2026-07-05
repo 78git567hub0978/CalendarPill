@@ -1,5 +1,8 @@
 console.log("app.js loaded");
 
+const ALLOWED_EMAIL = "YOUR_GMAIL_HERE";
+const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
+
 const firebaseConfig = {
   apiKey: "AIzaSyDYAeH3upeJDJITdTTnECSphPr5IIW-R_4",
   authDomain: "calendar-pill.firebaseapp.com",
@@ -173,6 +176,17 @@ async function handleAuthStateChanged(user) {
 
   if (!user) {
     showAuthGate("Sign in", "Sign in with Google to load your medicine log.", true);
+    return;
+  }
+
+  if (user.email !== ALLOWED_EMAIL || user.uid !== ALLOWED_UID) {
+    await auth.signOut();
+    appShell.hidden = true;
+    showAuthGate(
+      "Access denied",
+      "This application is private. Only the owner is allowed to use it.",
+      false
+    );
     return;
   }
 
