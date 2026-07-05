@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v112";
+const APP_VERSION = "v113";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -514,8 +514,11 @@ function getScheduledDoseLine(date) {
   if (!scheduledAt) return null;
 
   const line = document.createElement("span");
+  const change = getNewScheduleChangeOn(date);
   line.className = "scheduled-detail";
-  line.textContent = `Scheduled at ${formatTime(scheduledAt)}.`;
+  line.textContent = change && toKey(date) === toKey(today)
+    ? `New schedule started today at ${formatTime(scheduledAt)}.`
+    : `Scheduled at ${formatTime(scheduledAt)}.`;
   return line;
 }
 
@@ -1376,6 +1379,10 @@ function isEndedDate(date) {
 
 function hasScheduleChangeOn(key) {
   return settings.scheduleChanges.some((change) => change.date === key);
+}
+
+function getNewScheduleChangeOn(date) {
+  return settings.scheduleChanges.find((change) => change.date === toKey(date) && !change.endDate);
 }
 
 function getScheduleChangeLine(date) {
