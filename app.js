@@ -465,7 +465,7 @@ function renderCalendar() {
       if (timingClass) button.classList.add(timingClass);
     }
     if (isEndedDate(date)) button.classList.add("is-ended");
-    if (isFutureDate(date) && !isEndedDate(date)) button.classList.add("is-future");
+    if (isUpcomingDate(date) && !isEndedDate(date)) button.classList.add("is-future");
     if (!logs[key] && isMissedDate(date, logs[key])) button.classList.add("is-missed");
     if (!isFutureDate(date) && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
 
@@ -505,6 +505,7 @@ function renderDetails() {
 function renderMarkButton(loggedAt, date) {
   const missed = isMissedDate(date, loggedAt);
   const future = isFutureDate(date);
+  const upcoming = isUpcomingDate(date);
   const ended = isEndedDate(date);
   let label = "Mark taken";
   let statusClass = "";
@@ -512,7 +513,7 @@ function renderMarkButton(loggedAt, date) {
   if (ended) {
     label = "Ended";
     statusClass = "is-ended";
-  } else if (future) {
+  } else if (future || (!loggedAt && upcoming)) {
     label = "Upcoming";
   } else if (loggedAt) {
     const timing = getTimingDetail(loggedAt, date);
@@ -1378,6 +1379,13 @@ function isMissedDate(date, loggedAt) {
 
   return date < today
     || (toKey(date) === toKey(today) && new Date() > getTodayDoseTime(new Date()));
+}
+
+function isUpcomingDate(date) {
+  if (isFutureDate(date)) return true;
+
+  const scheduledAt = getScheduledDoseTime(date);
+  return toKey(date) === toKey(today) && scheduledAt && new Date() <= scheduledAt;
 }
 
 function isFutureDate(date) {
