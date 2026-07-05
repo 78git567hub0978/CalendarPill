@@ -806,6 +806,8 @@ function getMinuteWheelOptions() {
 
 function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   const optionHeight = 40;
+  const loopedOptions = [...options, ...options, ...options];
+  const middleLoopStart = options.length;
   const topSpacer = document.createElement("div");
   const bottomSpacer = document.createElement("div");
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === selectedValue));
@@ -816,6 +818,9 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   wheel._pickerOptions = options;
   wheel._pickerOnSelect = onSelect;
   wheel._pickerValue = selectedValue;
+  wheel._pickerOptionHeight = optionHeight;
+  wheel._pickerLoopStart = middleLoopStart;
+  wheel._isLoopingScroll = false;
   wheel._lastTapTime = 0;
   wheel.ontouchmove = (event) => {
     event.stopPropagation();
@@ -824,7 +829,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   bottomSpacer.className = "wheel-picker__spacer";
   wheel.append(topSpacer);
 
-  options.forEach((option) => {
+  loopedOptions.forEach((option) => {
     const button = document.createElement("button");
     const label = document.createElement("span");
     button.type = "button";
@@ -849,6 +854,9 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
 
   wheel.append(bottomSpacer);
   wheel.onscroll = () => {
+    keepWheelScrollInMiddleLoop(wheel);
+    if (wheel._isLoopingScroll) return;
+
     cancelAnimationFrame(scrollAnimationFrame);
     scrollAnimationFrame = requestAnimationFrame(() => {
       selectWheelValue(wheel, getCenteredWheelValue(wheel), false);
@@ -860,7 +868,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   };
 
   requestAnimationFrame(() => {
-    wheel.scrollTop = selectedIndex * optionHeight;
+    wheel.scrollTop = (middleLoopStart + selectedIndex) * optionHeight;
   });
 }
 
@@ -910,7 +918,10 @@ function openWheelNumberInput(wheel) {
 
 function getCenteredWheelValue(wheel) {
   const options = wheel._pickerOptions || [];
-  const index = Math.min(options.length - 1, Math.max(0, Math.round(wheel.scrollTop / 40)));
+  if (!options.length) return undefined;
+
+  const optionHeight = wheel._pickerOptionHeight || 40;
+  const index = wrapIndex(Math.round(wheel.scrollTop / optionHeight), options.length);
   return options[index]?.value;
 }
 
@@ -921,13 +932,37 @@ function selectWheelValue(wheel, value, shouldScroll = true) {
 
   wheel._pickerValue = value;
   wheel.querySelectorAll(".wheel-picker__option").forEach((option, index) => {
-    option.classList.toggle("is-selected", index === selectedIndex);
+    option.classList.toggle("is-selected", wrapIndex(index, options.length) === selectedIndex);
   });
   wheel._pickerOnSelect?.(value);
 
   if (shouldScroll) {
-    wheel.scrollTo({ top: selectedIndex * 40, behavior: "smooth" });
+    const optionHeight = wheel._pickerOptionHeight || 40;
+    const loopStart = wheel._pickerLoopStart || 0;
+    wheel.scrollTo({ top: (loopStart + selectedIndex) * optionHeight, behavior: "smooth" });
   }
+}
+
+function keepWheelScrollInMiddleLoop(wheel) {
+  const options = wheel._pickerOptions || [];
+  if (!options.length || wheel._isLoopingScroll) return;
+
+  const optionHeight = wheel._pickerOptionHeight || 40;
+  const rawIndex = Math.round(wheel.scrollTop / optionHeight);
+  const loopSize = options.length * optionHeight;
+
+  if (rawIndex < options.length || rawIndex >= options.length * 2) {
+    wheel._isLoopingScroll = true;
+    wheel.scrollTop += rawIndex < options.length ? loopSize : -loopSize;
+    requestAnimationFrame(() => {
+      wheel._isLoopingScroll = false;
+      selectWheelValue(wheel, getCenteredWheelValue(wheel), false);
+    });
+  }
+}
+
+function wrapIndex(index, length) {
+  return ((index % length) + length) % length;
 }
 
 function getWheelValue(wheel, fallbackValue) {
