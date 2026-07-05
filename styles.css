@@ -349,7 +349,7 @@ h3 {
 
 .calendar-grid {
   gap: 6px;
-  touch-action: pan-y;
+  touch-action: pan-x;
   will-change: transform, opacity;
 }
 
@@ -370,24 +370,24 @@ h3 {
 @keyframes calendar-slide-next {
   from {
     opacity: 0.25;
-    transform: translateY(34px);
+    transform: translateX(34px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 
 @keyframes calendar-slide-prev {
   from {
     opacity: 0.25;
-    transform: translateY(-34px);
+    transform: translateX(-34px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 

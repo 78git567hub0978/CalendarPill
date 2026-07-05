@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v113";
+const APP_VERSION = "v114";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -426,16 +426,16 @@ function handleCalendarTouchEnd(event) {
   const deltaY = touch.clientY - calendarTouchStartY;
   const deltaX = touch.clientX - calendarTouchStartX;
 
-  if (Math.abs(deltaY) < 42 || Math.abs(deltaY) < Math.abs(deltaX)) return;
+  if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY)) return;
 
-  changeViewedMonth(deltaY < 0 ? 1 : -1);
+  changeViewedMonth(deltaX < 0 ? 1 : -1);
 }
 
 function handleCalendarWheel(event) {
-  if (Math.abs(event.deltaY) < 18 || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+  if (Math.abs(event.deltaX) < 18 || Math.abs(event.deltaX) < Math.abs(event.deltaY)) return;
 
   event.preventDefault();
-  changeViewedMonth(event.deltaY > 0 ? 1 : -1);
+  changeViewedMonth(event.deltaX > 0 ? 1 : -1);
 }
 
 function renderDetails() {
