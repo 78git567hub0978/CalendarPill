@@ -177,6 +177,11 @@ h3 {
   font-size: 1.08rem;
 }
 
+#selectedTitle {
+  font-size: 0.96rem;
+  line-height: 1.18;
+}
+
 .icon-button {
   display: grid;
   width: 44px;
@@ -584,6 +589,10 @@ h3 {
 
 .timing-detail.is-early {
   color: var(--early);
+}
+
+.scheduled-detail {
+  color: var(--muted);
 }
 
 .notes-detail {

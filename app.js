@@ -405,6 +405,7 @@ function renderMarkButton(loggedAt, date) {
 function renderSelectedMeta(loggedAt, date) {
   selectedMeta.replaceChildren();
   const scheduleChangeLine = getScheduleChangeLine(date);
+  const scheduledLine = getScheduledDoseLine(date);
 
   if (!loggedAt) {
     const missed = isMissedDate(date, loggedAt);
@@ -412,6 +413,7 @@ function renderSelectedMeta(loggedAt, date) {
     const statusLine = document.createElement("span");
     statusLine.textContent = ended ? "Schedule ended" : missed ? "Missed" : "No pill logged for this day.";
     selectedMeta.className = missed || ended ? "missed-detail" : "";
+    if (scheduledLine) selectedMeta.append(scheduledLine);
     selectedMeta.append(statusLine);
     if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
     return;
@@ -428,8 +430,19 @@ function renderSelectedMeta(loggedAt, date) {
   timingLine.textContent = timing;
   notesLine.className = "notes-detail";
   notesLine.textContent = notes ? `Notes: ${notes}` : "No notes";
+  if (scheduledLine) selectedMeta.append(scheduledLine);
   selectedMeta.append(takenLine, timingLine, notesLine);
   if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
+}
+
+function getScheduledDoseLine(date) {
+  const scheduledAt = getScheduledDoseTime(date);
+  if (!scheduledAt) return null;
+
+  const line = document.createElement("span");
+  line.className = "scheduled-detail";
+  line.textContent = `Scheduled at ${formatTime(scheduledAt)}.`;
+  return line;
 }
 
 function openScheduleDialog() {
