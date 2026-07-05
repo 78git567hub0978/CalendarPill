@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v111";
+const APP_VERSION = "v112";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -111,6 +111,7 @@ let datePickerMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let lockedScrollY = 0;
 let calendarTouchStartY = 0;
 let calendarTouchStartX = 0;
+let isCalendarSliding = false;
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   changeViewedMonth(-1);
@@ -389,8 +390,29 @@ function renderCalendar() {
 }
 
 function changeViewedMonth(direction) {
+  if (isCalendarSliding) return;
+
+  isCalendarSliding = true;
   viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + direction, 1);
   render();
+  animateCalendarPage(direction);
+}
+
+function animateCalendarPage(direction) {
+  const animationClass = direction > 0 ? "is-sliding-next" : "is-sliding-prev";
+  calendarGrid.classList.remove("is-sliding-next", "is-sliding-prev");
+  monthTitle.classList.remove("is-sliding-next", "is-sliding-prev");
+
+  requestAnimationFrame(() => {
+    calendarGrid.classList.add(animationClass);
+    monthTitle.classList.add(animationClass);
+  });
+
+  window.setTimeout(() => {
+    calendarGrid.classList.remove(animationClass);
+    monthTitle.classList.remove(animationClass);
+    isCalendarSliding = false;
+  }, 260);
 }
 
 function handleCalendarTouchStart(event) {
