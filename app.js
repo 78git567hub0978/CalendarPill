@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const ALLOWED_EMAIL = "dllaurenc90@gmail.com";
+const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 
 const firebaseConfig = {
@@ -48,6 +48,7 @@ let logs = {};
 let settings = getDefaultSettings();
 let isDataReady = false;
 let countdownTimer = 0;
+let accessWasDenied = false;
 
 const appShell = document.querySelector(".app-shell");
 const authGate = document.querySelector("#authGate");
@@ -175,12 +176,22 @@ async function handleAuthStateChanged(user) {
   hideAppError();
 
   if (!user) {
+    if (accessWasDenied) {
+      showAuthGate(
+        "Access denied",
+        "This application is private. Only the owner is allowed to use it.",
+        false
+      );
+      return;
+    }
+
     showAuthGate("Sign in", "Sign in with Google to load your medicine log.", true);
     return;
   }
 
   const shouldCheckEmail = ALLOWED_EMAIL !== "YOUR_GMAIL_HERE";
   if (user.uid !== ALLOWED_UID || (shouldCheckEmail && user.email !== ALLOWED_EMAIL)) {
+    accessWasDenied = true;
     await auth.signOut();
     appShell.hidden = true;
     showAuthGate(
@@ -191,6 +202,7 @@ async function handleAuthStateChanged(user) {
     return;
   }
 
+  accessWasDenied = false;
   showAuthGate("Loading", "Loading your medicine log...", false);
 
   try {
@@ -215,6 +227,7 @@ function handleAuthError(error) {
 
 async function signInWithGoogle() {
   signInButton.disabled = true;
+  authGate.classList.remove("is-sign-in");
   showAuthError("");
   authStatus.textContent = "Opening Google sign-in...";
 
@@ -231,10 +244,18 @@ async function signInWithGoogle() {
 
 function showAuthGate(title, status, canSignIn) {
   authGate.hidden = false;
-  authGate.classList.toggle("is-sign-in", title === "Sign in" && canSignIn && !authError.textContent);
+  authGate.classList.remove("is-sign-in", "is-denied", "is-loading");
   authTitle.textContent = title;
   authStatus.textContent = status;
   signInButton.hidden = !canSignIn;
+
+  if (title === "Sign in" && canSignIn && !authError.textContent) {
+    authGate.classList.add("is-sign-in");
+  } else if (title === "Access denied") {
+    authGate.classList.add("is-denied");
+  } else {
+    authGate.classList.add("is-loading");
+  }
 }
 
 function showAuthError(message) {

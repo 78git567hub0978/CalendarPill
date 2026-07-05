@@ -92,6 +92,13 @@ button {
   display: none;
 }
 
+.auth-gate.is-loading #authTitle,
+.auth-gate.is-loading #authStatus,
+.auth-gate.is-denied #authTitle,
+.auth-gate.is-denied #authStatus {
+  display: block;
+}
+
 .auth-gate__panel p:not(.eyebrow) {
   color: var(--muted);
   font-weight: 700;
