@@ -190,7 +190,16 @@ async function handleAuthStateChanged(user) {
   }
 
   const shouldCheckEmail = ALLOWED_EMAIL !== "YOUR_GMAIL_HERE";
-  if (user.uid !== ALLOWED_UID || (shouldCheckEmail && user.email !== ALLOWED_EMAIL)) {
+  const emailMatches = shouldCheckEmail && user.email === ALLOWED_EMAIL;
+  const uidMatches = user.uid === ALLOWED_UID;
+  console.log("access check", {
+    signedInEmail: user.email,
+    signedInUid: user.uid,
+    emailMatches,
+    uidMatches,
+  });
+
+  if (!emailMatches && !uidMatches) {
     accessWasDenied = true;
     await auth.signOut();
     appShell.hidden = true;
