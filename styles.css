@@ -338,13 +338,13 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--ink);
-  background: #7d7d7d;
+  background: #151515;
   font-size: 0.72rem;
   font-weight: 800;
 }
 
 .today-jump:active {
-  background: #6b6b6b;
+  background: #242424;
 }
 
 .weekday-row,

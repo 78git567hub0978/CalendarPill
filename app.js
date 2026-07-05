@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v118";
+const APP_VERSION = "v120";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -114,6 +114,7 @@ let calendarTouchStartY = 0;
 let calendarTouchStartX = 0;
 let isCalendarSliding = false;
 let calendarSlideTimeout = 0;
+let lastTodayJumpAt = 0;
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   changeViewedMonth(-1);
@@ -123,7 +124,9 @@ document.querySelector("#nextMonth").addEventListener("click", () => {
   changeViewedMonth(1);
 });
 
-todayJumpButton.addEventListener("click", goToToday);
+todayJumpButton.addEventListener("pointerup", handleTodayJump);
+todayJumpButton.addEventListener("touchend", handleTodayJump);
+todayJumpButton.addEventListener("click", handleTodayJump);
 calendarGrid.addEventListener("touchstart", handleCalendarTouchStart, { passive: true });
 calendarGrid.addEventListener("touchend", handleCalendarTouchEnd);
 calendarGrid.addEventListener("wheel", handleCalendarWheel, { passive: false });
@@ -399,6 +402,19 @@ function changeViewedMonth(direction) {
   viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + direction, 1);
   render();
   animateCalendarPage(direction);
+}
+
+function handleTodayJump(event) {
+  const now = Date.now();
+  const isDuplicateMobileEvent = now - lastTodayJumpAt < 350;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (isDuplicateMobileEvent) return;
+
+  lastTodayJumpAt = now;
+  goToToday();
 }
 
 function goToToday() {
