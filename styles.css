@@ -87,8 +87,8 @@ button {
 }
 
 .auth-gate__panel .eyebrow,
-#authTitle,
-#authStatus {
+.auth-gate.is-sign-in #authTitle,
+.auth-gate.is-sign-in #authStatus {
   display: none;
 }
 

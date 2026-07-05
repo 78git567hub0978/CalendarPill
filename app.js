@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const ALLOWED_EMAIL = "YOUR_GMAIL_HERE";
+const ALLOWED_EMAIL = "dllaurenc90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 
 const firebaseConfig = {
@@ -179,7 +179,8 @@ async function handleAuthStateChanged(user) {
     return;
   }
 
-  if (user.email !== ALLOWED_EMAIL || user.uid !== ALLOWED_UID) {
+  const shouldCheckEmail = ALLOWED_EMAIL !== "YOUR_GMAIL_HERE";
+  if (user.uid !== ALLOWED_UID || (shouldCheckEmail && user.email !== ALLOWED_EMAIL)) {
     await auth.signOut();
     appShell.hidden = true;
     showAuthGate(
@@ -230,6 +231,7 @@ async function signInWithGoogle() {
 
 function showAuthGate(title, status, canSignIn) {
   authGate.hidden = false;
+  authGate.classList.toggle("is-sign-in", title === "Sign in" && canSignIn && !authError.textContent);
   authTitle.textContent = title;
   authStatus.textContent = status;
   signInButton.hidden = !canSignIn;
