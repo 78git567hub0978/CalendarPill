@@ -395,7 +395,7 @@ h3 {
 
 .legend-dot.is-schedule-change {
   border-radius: 0;
-  background: var(--early);
+  background: var(--ink);
   clip-path: polygon(
     50% 0%,
     64% 32%,
