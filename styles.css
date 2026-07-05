@@ -818,6 +818,7 @@ h3 {
   width: 42px;
   height: 148px;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   border: 0;
@@ -846,29 +847,36 @@ h3 {
   appearance: none;
   position: relative;
   z-index: 1;
-  display: grid;
+  display: block;
   width: 100%;
   min-width: 0;
   padding: 0;
   border: 0;
-  place-items: center;
   scroll-snap-align: center;
-  color: #aaa;
   background: transparent;
+}
+
+.wheel-picker__label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2ch;
+  color: #aaa;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 1.04rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   line-height: 1;
   text-align: center;
-  transform: scale(1);
+  transform: translate(-50%, -50%) scale(1);
   transform-origin: center;
   transition: color 120ms ease, transform 120ms ease;
 }
 
-.wheel-picker__option.is-selected {
+.wheel-picker__option.is-selected .wheel-picker__label {
   color: #222;
-  transform: scale(1.62);
+  transform: translate(-50%, -50%) scale(1.62);
 }
 
 .wheel-picker__input {

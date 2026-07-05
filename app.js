@@ -927,10 +927,13 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
 
   options.forEach((option) => {
     const button = document.createElement("button");
+    const label = document.createElement("span");
     button.type = "button";
     button.className = "wheel-picker__option";
-    button.textContent = option.label;
     button.dataset.value = String(option.value);
+    label.className = "wheel-picker__label";
+    label.textContent = option.label;
+    button.append(label);
     if (option.value === selectedValue) button.classList.add("is-selected");
     button.addEventListener("click", () => selectWheelValue(wheel, option.value));
     button.addEventListener("dblclick", () => openWheelNumberInput(wheel));
