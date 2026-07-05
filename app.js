@@ -126,7 +126,7 @@ cancelScheduleButton.addEventListener("click", closeScheduleDialog);
 scheduleForm.addEventListener("submit", saveSchedule);
 scheduleStartInput.addEventListener("click", () => openScheduleDatePicker(scheduleStartInput));
 scheduleEndInput.addEventListener("click", () => openScheduleDatePicker(scheduleEndInput));
-noEndDateButton.addEventListener("click", clearScheduleEndDate);
+noEndDateButton.addEventListener("click", stopTakingOnSelectedDate);
 datePickerPrev.addEventListener("click", () => {
   datePickerMonth = new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1, 1);
   renderScheduleDatePicker();
@@ -394,7 +394,7 @@ function renderMarkButton(loggedAt, date) {
   let statusClass = "";
 
   if (ended) {
-    label = "Ended";
+    label = "Stopped";
     statusClass = "is-ended";
   } else if (future || (!loggedAt && upcoming)) {
     label = "Upcoming";
@@ -421,7 +421,7 @@ function renderSelectedMeta(loggedAt, date) {
     const missed = isMissedDate(date, loggedAt);
     const ended = isEndedDate(date);
     const statusLine = document.createElement("span");
-    statusLine.textContent = ended ? "Schedule ended" : missed ? "Missed" : "No pill logged for this day.";
+    statusLine.textContent = ended ? "PreP Stopped" : missed ? "Missed" : "No pill logged for this day.";
     selectedMeta.className = missed || ended ? "missed-detail" : "";
     if (scheduledLine) selectedMeta.append(scheduledLine);
     selectedMeta.append(statusLine);
@@ -521,8 +521,8 @@ function closeScheduleDialogOnBackdrop(event) {
   }
 }
 
-function clearScheduleEndDate() {
-  scheduleEndInput.value = "";
+function stopTakingOnSelectedDate() {
+  scheduleEndInput.value = toKey(selectedDate);
   scheduleDatePicker.hidden = true;
 }
 
@@ -577,7 +577,7 @@ function renderCountdown() {
   statusStrip.classList.toggle("is-missed-dose", missedToday);
   statusStrip.classList.toggle("is-off-schedule-dose", Boolean(offScheduleToday));
   statusStrip.classList.toggle("is-upcoming-dose", !missedToday && !offScheduleToday);
-  document.querySelector(".status-label").textContent = nextDose ? formatNextDoseSentence(nextDose) : "Schedule ended";
+  document.querySelector(".status-label").textContent = nextDose ? formatNextDoseSentence(nextDose) : "PreP Stopped";
   countdownStatus.textContent = nextDose ? formatCountdown(remainingMs) : "Ended";
   scheduleStatus.textContent = nextDose ? "remaining until next dose" : "";
 }
@@ -1220,7 +1220,7 @@ function parseInputTime(value) {
 function getTimingDetail(loggedAt, date) {
   const takenAt = new Date(getLogTakenAt(loggedAt));
   const scheduledAt = getScheduledDoseTime(date);
-  if (!scheduledAt) return "Schedule ended";
+  if (!scheduledAt) return "PreP Stopped";
   const differenceMs = takenAt - scheduledAt;
   return formatTimingDifference(differenceMs);
 }
@@ -1261,7 +1261,7 @@ function getEffectiveSchedule(date) {
 
   for (const change of settings.scheduleChanges) {
     if (change.date > key) break;
-    schedule = change.endDate && key > change.endDate ? null : change.schedule;
+    schedule = change.endDate && key >= change.endDate ? null : change.schedule;
   }
 
   return schedule;
@@ -1296,7 +1296,7 @@ function getPreviousSchedule(changeDateKey) {
 
   for (const change of settings.scheduleChanges) {
     if (change.date >= changeDateKey) break;
-    schedule = change.endDate && changeDateKey > change.endDate ? defaultSchedule : change.schedule;
+    schedule = change.endDate && changeDateKey >= change.endDate ? defaultSchedule : change.schedule;
   }
 
   return schedule;
@@ -1402,7 +1402,7 @@ function formatNextDoseSentence(date) {
 
 function formatHeaderScheduleLabel(date) {
   const schedule = getEffectiveSchedule(date);
-  return schedule ? `Schedule is Every day at ${formatScheduleClock(schedule)}` : "Schedule ended";
+  return schedule ? `Schedule is Every day at ${formatScheduleClock(schedule)}` : "PreP Stopped";
 }
 
 function formatRelativeStartDate(date) {
