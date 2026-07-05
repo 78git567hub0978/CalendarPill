@@ -50,6 +50,62 @@ button {
   padding: max(18px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
 }
 
+.auth-gate {
+  display: grid;
+  width: min(100%, 430px);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: max(18px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  place-items: center;
+}
+
+.auth-gate[hidden],
+.app-shell[hidden] {
+  display: none;
+}
+
+.auth-gate__panel,
+.app-error {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.auth-gate__panel {
+  padding: 18px;
+}
+
+.auth-gate__panel h1 {
+  margin-bottom: 10px;
+  color: var(--off-schedule);
+}
+
+.auth-gate__panel p:not(.eyebrow) {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.auth-gate__button {
+  width: 100%;
+  margin-top: 18px;
+}
+
+.auth-error,
+.app-error {
+  color: var(--rose);
+}
+
+.auth-error {
+  margin-top: 10px;
+}
+
+.app-error {
+  margin-bottom: 14px;
+  padding: 12px;
+  font-weight: 700;
+}
+
 .status-strip,
 .month-controls,
 .detail-panel,
@@ -59,7 +115,8 @@ button {
 }
 
 .eyebrow,
-.status-label {
+.status-label,
+.schedule-label {
   margin: 0 0 3px;
   color: var(--muted);
   font-size: 0.75rem;
@@ -68,7 +125,14 @@ button {
 }
 
 .status-strip .status-label {
+  display: block;
   color: var(--off-schedule);
+}
+
+.status-strip .schedule-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
 }
 
 h1,
@@ -191,6 +255,8 @@ h3 {
 
 .primary-action:disabled {
   opacity: 1;
+  background: var(--future);
+  cursor: default;
 }
 
 .primary-action.is-on-time {
@@ -209,6 +275,10 @@ h3 {
   background: var(--missed);
 }
 
+.primary-action.is-ended {
+  background: #8a8a8a;
+}
+
 .secondary-action {
   min-width: 78px;
   padding: 0 15px;
@@ -218,7 +288,8 @@ h3 {
 }
 
 .month-panel,
-.detail-panel {
+.detail-panel,
+.settings-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -309,6 +380,7 @@ h3 {
 }
 
 .day time {
+  --date-fill: transparent;
   display: grid;
   width: 28px;
   height: 28px;
@@ -316,6 +388,12 @@ h3 {
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 800;
+  background: var(--date-fill);
+}
+
+.day-number {
+  position: relative;
+  z-index: 2;
 }
 
 .today-caption {
@@ -336,7 +414,7 @@ h3 {
 
 .day.is-today time {
   color: #050505;
-  background: var(--ink);
+  --date-fill: var(--ink);
 }
 
 .day.is-selected {
@@ -358,32 +436,105 @@ h3 {
 
 .day.is-taken time {
   color: #050505;
-  background: var(--accent);
+  --date-fill: var(--accent);
 }
 
 .day.is-taken.is-today time {
   color: #050505;
-  background: var(--accent);
+  --date-fill: var(--accent);
 }
 
 .day.is-taken.is-off-schedule time {
   color: #050505;
-  background: var(--off-schedule);
+  --date-fill: var(--off-schedule);
 }
 
 .day.is-taken.is-early time {
   color: #050505;
-  background: var(--early);
+  --date-fill: var(--early);
 }
 
 .day.is-future time {
   color: #050505;
-  background: var(--future);
+  --date-fill: var(--future);
+}
+
+.day.is-future:not(.is-ended) time {
+  color: #050505;
+  --date-fill: var(--future);
 }
 
 .day.is-missed time {
   color: #050505;
-  background: var(--missed);
+  --date-fill: var(--missed);
+}
+
+.day.is-schedule-change time {
+  position: relative;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
+  border-radius: 0;
+  font-size: 0.78rem;
+  background: transparent;
+}
+
+.day.is-schedule-change time::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  background: var(--date-fill);
+  clip-path: polygon(
+    50% 0%,
+    64% 32%,
+    100% 32%,
+    72% 55%,
+    83% 94%,
+    50% 73%,
+    17% 94%,
+    28% 55%,
+    0% 32%,
+    36% 32%
+  );
+}
+
+.day.is-selected.is-schedule-change time {
+  box-shadow: none;
+}
+
+.day.is-selected.is-schedule-change time::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: 46px;
+  height: 46px;
+  transform: translate(-50%, -50%);
+  background: var(--accent);
+  clip-path: polygon(
+    50% 0%,
+    64% 32%,
+    100% 32%,
+    72% 55%,
+    83% 94%,
+    50% 73%,
+    17% 94%,
+    28% 55%,
+    0% 32%,
+    36% 32%
+  );
+}
+
+.day.is-ended time {
+  color: #8a8a8a;
+  --date-fill: #3a3a3a;
+  background: #3a3a3a;
 }
 
 .detail-panel {
@@ -421,6 +572,13 @@ h3 {
   margin-top: 3px;
 }
 
+.schedule-change-detail {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
 .missed-detail {
   color: var(--missed) !important;
   font-weight: 800;
@@ -429,6 +587,101 @@ h3 {
 .detail-actions {
   flex-shrink: 0;
   gap: 8px;
+}
+
+.settings-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.settings-wheel-picker .wheel-picker {
+  height: 128px;
+}
+
+.settings-save {
+  width: 100%;
+  background: #7d7d7d;
+}
+
+.settings-save:active {
+  background: #6b6b6b;
+}
+
+#scheduleStartInput,
+#scheduleEndInput {
+  min-height: 46px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.date-picker {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #101010;
+}
+
+.date-picker[hidden] {
+  display: none;
+}
+
+.date-picker__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-picker__controls .icon-button {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+}
+
+.date-picker__controls h3 {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+}
+
+.date-picker__weekdays,
+.date-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.date-picker__weekdays {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.date-picker__grid {
+  gap: 4px;
+}
+
+.date-picker__day {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.date-picker__day.is-outside {
+  color: #5f5b55;
+}
+
+.date-picker__day.is-selected {
+  color: #050505;
+  background: var(--off-schedule);
 }
 
 .edit-dialog {
@@ -446,16 +699,125 @@ h3 {
 }
 
 .edit-dialog__panel {
-  width: min(100%, 330px);
+  width: min(100%, 360px);
+  max-height: calc(100svh - 36px);
+  overflow-y: auto;
   padding: 20px;
   border-radius: 14px;
   background: var(--panel);
   text-align: center;
 }
 
-.edit-dialog__panel h2 {
+.edit-dialog__panel::-webkit-scrollbar {
+  display: none;
+}
+
+.edit-dialog__panel h2,
+.edit-form h2 {
   margin-bottom: 18px;
   font-size: 1.25rem;
+}
+
+.edit-form {
+  display: grid;
+  gap: 14px;
+  text-align: left;
+}
+
+.edit-form[hidden] {
+  display: none;
+}
+
+.edit-field {
+  display: grid;
+  gap: 8px;
+}
+
+.edit-field span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.edit-field strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.edit-field input,
+.edit-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #101010;
+  font: inherit;
+}
+
+.time-wheel-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.wheel-picker {
+  position: relative;
+  height: 148px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 12px;
+  color: #222;
+  background:
+    linear-gradient(#f7f7f7, rgba(247, 247, 247, 0) 34%),
+    linear-gradient(rgba(247, 247, 247, 0) 66%, #f7f7f7),
+    #f7f7f7;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wheel-picker::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-picker::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 54px;
+  z-index: 0;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(220, 220, 225, 0.72);
+  pointer-events: none;
+}
+
+.wheel-picker__spacer,
+.wheel-picker__option {
+  height: 40px;
+}
+
+.wheel-picker__option {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  scroll-snap-align: center;
+  color: #aaa;
+  font-size: 1.24rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.wheel-picker__option.is-selected {
+  color: #222;
+}
+
+.edit-field textarea {
+  min-height: 120px;
+  padding: 12px;
+  resize: vertical;
 }
 
 .edit-dialog__actions {
@@ -477,6 +839,14 @@ h3 {
 
 .dialog-action--yes {
   background: var(--accent);
+}
+
+.clear-log-action {
+  min-height: 42px;
+  border-radius: 999px;
+  color: var(--rose);
+  background: transparent;
+  font-weight: 900;
 }
 
 @media (max-width: 370px) {
