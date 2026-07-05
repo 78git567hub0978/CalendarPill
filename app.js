@@ -91,6 +91,8 @@ const scheduleHourWheel = document.querySelector("#scheduleHourWheel");
 const scheduleMinuteWheel = document.querySelector("#scheduleMinuteWheel");
 const cancelScheduleButton = document.querySelector("#cancelScheduleButton");
 const noEndDateButton = document.querySelector("#noEndDateButton");
+const enableNotificationsButton = document.querySelector("#enableNotificationsButton");
+const notificationStatus = document.querySelector("#notificationStatus");
 let editDialogResolver = null;
 let editingKey = "";
 let editingBaseDate = today;
@@ -101,6 +103,8 @@ let scheduleMinute = 0;
 let activeScheduleDateInput = scheduleStartInput;
 let datePickerMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let lockedScrollY = 0;
+let notificationTimers = [];
+let serviceWorkerRegistration = null;
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() - 1, 1);
@@ -124,6 +128,7 @@ scheduleForm.addEventListener("submit", saveSchedule);
 scheduleStartInput.addEventListener("click", () => openScheduleDatePicker(scheduleStartInput));
 scheduleEndInput.addEventListener("click", () => openScheduleDatePicker(scheduleEndInput));
 noEndDateButton.addEventListener("click", clearScheduleEndDate);
+enableNotificationsButton.addEventListener("click", enableNotifications);
 datePickerPrev.addEventListener("click", () => {
   datePickerMonth = new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1, 1);
   renderScheduleDatePicker();
@@ -221,6 +226,7 @@ async function handleAuthStateChanged(user) {
     isDataReady = true;
     authGate.hidden = true;
     appShell.hidden = false;
+    await initializeNotifications();
     render();
     startCountdownTimer();
   } catch (error) {
@@ -287,6 +293,139 @@ function hideAppError() {
 function startCountdownTimer() {
   if (countdownTimer) return;
   countdownTimer = setInterval(renderCountdown, 1000);
+}
+
+async function initializeNotifications() {
+  await registerServiceWorker();
+  renderNotificationStatus();
+  scheduleDoseNotifications();
+}
+
+async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  try {
+    serviceWorkerRegistration = await navigator.serviceWorker.register("./service-worker.js");
+  } catch (error) {
+    console.error("Service worker registration failed", error);
+  }
+}
+
+async function enableNotifications() {
+  hideAppError();
+
+  if (!("Notification" in window)) {
+    renderNotificationStatus("Notifications are not supported on this browser.");
+    return;
+  }
+
+  if (!("serviceWorker" in navigator)) {
+    renderNotificationStatus("Add this app to your Home Screen to use notifications.");
+    return;
+  }
+
+  try {
+    await registerServiceWorker();
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      settings.notificationsEnabled = false;
+      await saveSettingsToFirestore();
+      renderNotificationStatus("Notifications blocked");
+      return;
+    }
+
+    settings.notificationsEnabled = true;
+    await saveSettingsToFirestore();
+    renderNotificationStatus();
+    scheduleDoseNotifications();
+  } catch (error) {
+    showAppError("Could not enable notifications. Please try again.");
+    console.error(error);
+  }
+}
+
+function renderNotificationStatus(message = "") {
+  if (!("Notification" in window)) {
+    enableNotificationsButton.disabled = true;
+    enableNotificationsButton.textContent = "Notifications unavailable";
+    notificationStatus.textContent = message || "Notifications are not supported on this browser.";
+    return;
+  }
+
+  const permission = Notification.permission;
+  const enabled = settings.notificationsEnabled && permission === "granted";
+
+  enableNotificationsButton.disabled = permission === "denied";
+  enableNotificationsButton.textContent = enabled ? "Notifications on" : "Enable notifications";
+  enableNotificationsButton.classList.toggle("is-enabled", enabled);
+  notificationStatus.textContent = message || (enabled
+    ? "10 minutes before and at dose time"
+    : permission === "denied"
+      ? "Notifications blocked in browser settings"
+      : "Notifications off");
+}
+
+function scheduleDoseNotifications() {
+  clearNotificationTimers();
+
+  if (!settings.notificationsEnabled || !("Notification" in window) || Notification.permission !== "granted") {
+    renderNotificationStatus();
+    return;
+  }
+
+  const now = new Date();
+  const nextDose = getNextUnloggedDoseTime(now);
+  if (!nextDose) {
+    renderNotificationStatus("No upcoming active dose found");
+    return;
+  }
+
+  scheduleNotificationTimer(
+    new Date(nextDose.getTime() - 10 * 60 * 1000),
+    "Pill reminder",
+    `Take your pill in 10 minutes at ${formatTime(nextDose)}.`
+  );
+  scheduleNotificationTimer(
+    nextDose,
+    "Pill time",
+    `It is time to take your pill. Scheduled for ${formatTime(nextDose)}.`
+  );
+  renderNotificationStatus();
+}
+
+function clearNotificationTimers() {
+  notificationTimers.forEach((timer) => clearTimeout(timer));
+  notificationTimers = [];
+}
+
+function scheduleNotificationTimer(when, title, body) {
+  const delay = when - new Date();
+  if (delay <= 0) return;
+
+  notificationTimers.push(setTimeout(() => {
+    showDoseNotification(title, body);
+  }, delay));
+}
+
+async function showDoseNotification(title, body) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  try {
+    const registration = serviceWorkerRegistration || await navigator.serviceWorker.ready;
+    if (registration?.showNotification) {
+      await registration.showNotification(title, {
+        body,
+        tag: "pill-calendar-dose",
+        renotify: true,
+      });
+      return;
+    }
+  } catch (error) {
+    console.error("Service worker notification failed", error);
+  }
+
+  new Notification(title, { body });
 }
 
 function render() {
@@ -514,6 +653,7 @@ async function saveSchedule(event) {
     selectedDate = stripTime(startDate);
     viewedMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
     closeScheduleDialog();
+    scheduleDoseNotifications();
     render();
   } catch (error) {
     settings = previousSettings;
@@ -551,6 +691,7 @@ async function markTaken(date) {
 
   try {
     await saveLogToFirestore(key, entry);
+    scheduleDoseNotifications();
     render();
   } catch (error) {
     delete logs[key];
@@ -674,6 +815,7 @@ async function saveEditedLogEntry(event) {
     selectedDate = stripTime(updatedDate);
     viewedMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
     closeEditDialog(true);
+    scheduleDoseNotifications();
     render();
   } catch (error) {
     if (editingKey !== updatedKey) {
@@ -702,6 +844,7 @@ async function clearEditedLogEntry() {
   try {
     await deleteLogFromFirestore(editingKey);
     closeEditDialog(true);
+    scheduleDoseNotifications();
     render();
   } catch (error) {
     if (previousEntry) logs[editingKey] = previousEntry;
@@ -914,6 +1057,7 @@ async function loadUserData(uid) {
 function getDefaultSettings() {
   return {
     scheduleChanges: [],
+    notificationsEnabled: false,
   };
 }
 
@@ -929,6 +1073,7 @@ function parseSettings(savedSettings) {
 
   return {
     scheduleChanges: normalizeScheduleChanges(migratedChanges),
+    notificationsEnabled: savedSettings.notificationsEnabled === true,
   };
 }
 
@@ -1119,6 +1264,18 @@ function getNextDoseTime(now) {
     nextDate.setDate(now.getDate() + offset);
     nextDose = getScheduledDoseTime(nextDate);
     if (nextDose) return nextDose;
+  }
+
+  return null;
+}
+
+function getNextUnloggedDoseTime(now) {
+  for (let offset = 0; offset <= 370; offset += 1) {
+    const date = new Date(now);
+    date.setDate(now.getDate() + offset);
+    const key = toKey(date);
+    const doseTime = getScheduledDoseTime(date);
+    if (doseTime && doseTime > now && !logs[key]) return doseTime;
   }
 
   return null;
