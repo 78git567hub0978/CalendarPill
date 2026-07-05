@@ -471,8 +471,6 @@ h3 {
 .day.is-outside {
   color: #5f5b55;
   background: transparent;
-  visibility: hidden;
-  pointer-events: none;
 }
 
 .day.is-today time {

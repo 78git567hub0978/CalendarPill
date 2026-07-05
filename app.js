@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v108";
+const APP_VERSION = "v111";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -109,16 +109,20 @@ let scheduleMode = "start";
 let activeScheduleDateInput = scheduleStartInput;
 let datePickerMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let lockedScrollY = 0;
+let calendarTouchStartY = 0;
+let calendarTouchStartX = 0;
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
-  viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() - 1, 1);
-  render();
+  changeViewedMonth(-1);
 });
 
 document.querySelector("#nextMonth").addEventListener("click", () => {
-  viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + 1, 1);
-  render();
+  changeViewedMonth(1);
 });
+
+calendarGrid.addEventListener("touchstart", handleCalendarTouchStart, { passive: true });
+calendarGrid.addEventListener("touchend", handleCalendarTouchEnd);
+calendarGrid.addEventListener("wheel", handleCalendarWheel, { passive: false });
 
 markTakenButton.addEventListener("click", handleMarkButtonClick);
 editNoButton.addEventListener("click", () => closeEditDialog(false));
@@ -339,13 +343,7 @@ function renderCalendar() {
     button.setAttribute("aria-label", getDayLabel(date));
     button.dataset.date = key;
 
-    if (!inViewedMonth) {
-      button.classList.add("is-outside");
-      button.disabled = true;
-      button.setAttribute("aria-hidden", "true");
-      calendarGrid.append(button);
-      continue;
-    }
+    if (!inViewedMonth) button.classList.add("is-outside");
     if (key === toKey(today)) button.classList.add("is-today");
     if (key === toKey(selectedDate)) button.classList.add("is-selected");
     if (logs[key] && !isFutureDate(date) && !ended) {
@@ -356,7 +354,7 @@ function renderCalendar() {
     if (ended) button.classList.add("is-ended");
     if (isUpcomingDate(date) && !ended) button.classList.add("is-future");
     if (!logs[key] && isMissedDate(date, logs[key])) button.classList.add("is-missed");
-    if (!ended && !isFutureDate(date) && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
+    if (!ended && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
     if (logs[key] && getLogNotes(logs[key]).trim()) button.classList.add("has-notes");
 
     time.dateTime = key;
@@ -388,6 +386,34 @@ function renderCalendar() {
 
     calendarGrid.append(button);
   }
+}
+
+function changeViewedMonth(direction) {
+  viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() + direction, 1);
+  render();
+}
+
+function handleCalendarTouchStart(event) {
+  const touch = event.changedTouches[0];
+  calendarTouchStartY = touch.clientY;
+  calendarTouchStartX = touch.clientX;
+}
+
+function handleCalendarTouchEnd(event) {
+  const touch = event.changedTouches[0];
+  const deltaY = touch.clientY - calendarTouchStartY;
+  const deltaX = touch.clientX - calendarTouchStartX;
+
+  if (Math.abs(deltaY) < 42 || Math.abs(deltaY) < Math.abs(deltaX)) return;
+
+  changeViewedMonth(deltaY < 0 ? 1 : -1);
+}
+
+function handleCalendarWheel(event) {
+  if (Math.abs(event.deltaY) < 18 || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+
+  event.preventDefault();
+  changeViewedMonth(event.deltaY > 0 ? 1 : -1);
 }
 
 function renderDetails() {
@@ -488,7 +514,7 @@ function openScheduleForm(mode) {
   scheduleForm.hidden = false;
   scheduleDialogTitle.textContent = isStopMode ? "Stop PreP" : "Start new schedule";
   scheduleDateLabel.textContent = isStopMode ? "Stop date" : "Date start";
-  scheduleStartInput.value = toKey(selectedDate);
+  scheduleStartInput.value = formatCompactInputDate(selectedDate);
   scheduleDatePicker.hidden = true;
   scheduleTimeField.hidden = isStopMode;
   scheduleSaveButton.textContent = isStopMode ? "Mark stopped" : "Save";
@@ -515,7 +541,8 @@ function renderScheduleDatePicker() {
   scheduleDatePickerGrid.replaceChildren();
   datePickerTitle.textContent = monthFormatter.format(datePickerMonth);
 
-  const selectedKey = activeScheduleDateInput.value;
+  const selectedDate = parseInputDate(activeScheduleDateInput.value);
+  const selectedKey = selectedDate ? toKey(selectedDate) : "";
   const firstDayOffset = datePickerMonth.getDay();
   const gridStart = new Date(datePickerMonth);
   gridStart.setDate(datePickerMonth.getDate() - firstDayOffset);
@@ -533,7 +560,7 @@ function renderScheduleDatePicker() {
     if (date.getMonth() !== datePickerMonth.getMonth()) button.classList.add("is-outside");
     if (key === selectedKey) button.classList.add("is-selected");
     button.addEventListener("click", () => {
-      activeScheduleDateInput.value = key;
+      activeScheduleDateInput.value = formatCompactInputDate(date);
       scheduleDatePicker.hidden = true;
     });
     scheduleDatePickerGrid.append(button);
@@ -1204,8 +1231,30 @@ function formatTimeInputValue(date) {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+function formatCompactInputDate(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][date.getMonth()];
+  return `${day}${month}${date.getFullYear()}`;
+}
+
 function parseInputDate(value) {
-  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const normalizedValue = value.trim();
+  const compactMatch = normalizedValue.match(/^(\d{2})([A-Za-z]{3})(\d{4})$/);
+  if (compactMatch) {
+    const day = Number(compactMatch[1]);
+    const month = getShortMonthIndex(compactMatch[2]);
+    const year = Number(compactMatch[3]);
+    if (month < 0) return null;
+
+    const date = new Date(year, month, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+      return null;
+    }
+
+    return date;
+  }
+
+  const match = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
   if (!match) return null;
 
@@ -1219,6 +1268,11 @@ function parseInputDate(value) {
   }
 
   return date;
+}
+
+function getShortMonthIndex(monthText) {
+  return ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+    .indexOf(monthText.toLowerCase());
 }
 
 function parseInputTime(value) {
