@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v100";
+const APP_VERSION = "v103";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -323,6 +323,7 @@ function renderCalendar() {
     const date = new Date(gridStart);
     date.setDate(gridStart.getDate() + index);
     const key = toKey(date);
+    const ended = isEndedDate(date);
     const button = document.createElement("button");
     const time = document.createElement("time");
 
@@ -334,15 +335,15 @@ function renderCalendar() {
     if (date.getMonth() !== viewedMonth.getMonth()) button.classList.add("is-outside");
     if (key === toKey(today)) button.classList.add("is-today");
     if (key === toKey(selectedDate)) button.classList.add("is-selected");
-    if (logs[key] && !isFutureDate(date)) {
+    if (logs[key] && !isFutureDate(date) && !ended) {
       button.classList.add("is-taken");
       const timingClass = getCalendarTimingClass(logs[key], date);
       if (timingClass) button.classList.add(timingClass);
     }
-    if (isEndedDate(date)) button.classList.add("is-ended");
-    if (isUpcomingDate(date) && !isEndedDate(date)) button.classList.add("is-future");
+    if (ended) button.classList.add("is-ended");
+    if (isUpcomingDate(date) && !ended) button.classList.add("is-future");
     if (!logs[key] && isMissedDate(date, logs[key])) button.classList.add("is-missed");
-    if (!isFutureDate(date) && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
+    if (!ended && !isFutureDate(date) && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
     if (logs[key] && getLogNotes(logs[key]).trim()) button.classList.add("has-notes");
 
     time.dateTime = key;

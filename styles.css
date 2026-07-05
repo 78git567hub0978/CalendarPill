@@ -393,6 +393,27 @@ h3 {
   background: var(--future);
 }
 
+.legend-dot.is-schedule-change {
+  border-radius: 0;
+  background: var(--early);
+  clip-path: polygon(
+    50% 0%,
+    64% 32%,
+    100% 32%,
+    72% 55%,
+    83% 94%,
+    50% 73%,
+    17% 94%,
+    28% 55%,
+    0% 32%,
+    36% 32%
+  );
+}
+
+.legend-dot.is-ended {
+  background: #3a3a3a;
+}
+
 .day {
   position: relative;
   display: grid;
@@ -572,6 +593,16 @@ h3 {
 }
 
 .day.is-ended time {
+  color: #8a8a8a;
+  --date-fill: #3a3a3a;
+  background: #3a3a3a;
+}
+
+.day.is-ended.is-taken time,
+.day.is-ended.is-missed time,
+.day.is-ended.is-future time,
+.day.is-ended.is-off-schedule time,
+.day.is-ended.is-early time {
   color: #8a8a8a;
   --date-fill: #3a3a3a;
   background: #3a3a3a;
