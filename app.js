@@ -343,8 +343,16 @@ function renderCalendar() {
     if (isUpcomingDate(date) && !isEndedDate(date)) button.classList.add("is-future");
     if (!logs[key] && isMissedDate(date, logs[key])) button.classList.add("is-missed");
     if (!isFutureDate(date) && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
+    if (logs[key] && getLogNotes(logs[key]).trim()) button.classList.add("has-notes");
 
     time.dateTime = key;
+    if (logs[key] && getLogNotes(logs[key]).trim()) {
+      const noteMarker = document.createElement("span");
+      noteMarker.className = "note-marker";
+      noteMarker.setAttribute("aria-hidden", "true");
+      noteMarker.textContent = "*";
+      time.append(noteMarker);
+    }
     const dateNumber = document.createElement("span");
     dateNumber.className = "day-number";
     dateNumber.textContent = date.getDate();
