@@ -1,5 +1,6 @@
 console.log("app.js loaded");
 
+const APP_VERSION = "v100";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -64,6 +65,7 @@ const monthTitle = document.querySelector("#monthTitle");
 const statusStrip = document.querySelector(".status-strip");
 const countdownStatus = document.querySelector("#countdownStatus");
 const scheduleStatus = document.querySelector("#scheduleStatus");
+const appVersion = document.querySelector("#appVersion");
 const selectedTitle = document.querySelector("#selectedTitle");
 const selectedMeta = document.querySelector("#selectedMeta");
 const markTakenButton = document.querySelector("#markTakenButton");
@@ -134,6 +136,7 @@ datePickerNext.addEventListener("click", () => {
   renderScheduleDatePicker();
 });
 signInButton.addEventListener("click", signInWithGoogle);
+appVersion.textContent = APP_VERSION;
 
 startFirebase();
 

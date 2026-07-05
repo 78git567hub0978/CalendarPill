@@ -118,6 +118,18 @@ button {
   margin-top: 10px;
 }
 
+.app-version {
+  position: fixed;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(6px, env(safe-area-inset-bottom));
+  z-index: 5;
+  color: rgba(247, 244, 236, 0.32);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
 .app-error {
   margin-bottom: 14px;
   padding: 12px;
