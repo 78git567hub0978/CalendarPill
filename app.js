@@ -1,20 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithPopup,
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  getFirestore,
-  setDoc,
-  writeBatch,
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+console.log("app.js loaded");
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYAeH3upeJDJITdTTnECSphPr5IIW-R_4",
@@ -25,10 +9,20 @@ const firebaseConfig = {
   appId: "1:437019253479:web:29f8a93e5e0922abe46042"
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
-const googleProvider = new GoogleAuthProvider();
+let firebaseApp = null;
+let auth = null;
+let db = null;
+let googleProvider = null;
+let GoogleAuthProvider = null;
+let collection = null;
+let deleteDoc = null;
+let doc = null;
+let getDoc = null;
+let getDocs = null;
+let onAuthStateChanged = null;
+let setDoc = null;
+let signInWithPopup = null;
+let writeBatch = null;
 const defaultSchedule = {
   hours: 7,
   minutes: 0,
@@ -59,6 +53,7 @@ const authStatus = document.querySelector("#authStatus");
 const signInButton = document.querySelector("#signInButton");
 const authError = document.querySelector("#authError");
 const appError = document.querySelector("#appError");
+console.log("auth gate element:", authGate);
 const calendarGrid = document.querySelector("#calendarGrid");
 const monthTitle = document.querySelector("#monthTitle");
 const statusStrip = document.querySelector(".status-strip");
@@ -100,6 +95,7 @@ let scheduleHour = 7;
 let scheduleMinute = 0;
 let activeScheduleDateInput = scheduleStartInput;
 let datePickerMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+let lockedScrollY = 0;
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() - 1, 1);
@@ -132,7 +128,44 @@ datePickerNext.addEventListener("click", () => {
 });
 signInButton.addEventListener("click", signInWithGoogle);
 
-onAuthStateChanged(auth, async (user) => {
+startFirebase();
+
+async function startFirebase() {
+  showAuthGate("Loading", "Checking your sign-in...", false);
+
+  try {
+    const [firebaseAppModule, firebaseAuthModule, firebaseFirestoreModule] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"),
+    ]);
+
+    firebaseApp = firebaseAppModule.initializeApp(firebaseConfig);
+    auth = firebaseAuthModule.getAuth(firebaseApp);
+    db = firebaseFirestoreModule.getFirestore(firebaseApp);
+    GoogleAuthProvider = firebaseAuthModule.GoogleAuthProvider;
+    googleProvider = new GoogleAuthProvider();
+    onAuthStateChanged = firebaseAuthModule.onAuthStateChanged;
+    signInWithPopup = firebaseAuthModule.signInWithPopup;
+    collection = firebaseFirestoreModule.collection;
+    deleteDoc = firebaseFirestoreModule.deleteDoc;
+    doc = firebaseFirestoreModule.doc;
+    getDoc = firebaseFirestoreModule.getDoc;
+    getDocs = firebaseFirestoreModule.getDocs;
+    setDoc = firebaseFirestoreModule.setDoc;
+    writeBatch = firebaseFirestoreModule.writeBatch;
+
+    console.log("registering auth listener");
+    onAuthStateChanged(auth, handleAuthStateChanged, handleAuthError);
+  } catch (error) {
+    showAuthGate("Could not load", "Firebase could not start.", false);
+    showAuthError("Refresh the page. If this keeps happening, check that Firebase scripts are not blocked.");
+    console.error("Firebase startup failed", error);
+  }
+}
+
+async function handleAuthStateChanged(user) {
+  console.log("onAuthStateChanged fired", user);
   currentUser = user;
   isDataReady = false;
   appShell.hidden = true;
@@ -157,7 +190,13 @@ onAuthStateChanged(auth, async (user) => {
     showAuthError("Check your connection and Firebase setup, then try again.");
     console.error(error);
   }
-});
+}
+
+function handleAuthError(error) {
+  showAuthGate("Sign in", "Could not check your sign-in.", true);
+  showAuthError("Refresh the page or try signing in again.");
+  console.error("Auth listener failed", error);
+}
 
 async function signInWithGoogle() {
   signInButton.disabled = true;
@@ -333,6 +372,7 @@ function renderSelectedMeta(loggedAt, date) {
 }
 
 function openScheduleDialog() {
+  lockPageScroll();
   const currentSchedule = getEffectiveSchedule(selectedDate);
   const selectedKey = toKey(selectedDate);
   const existingChange = settings.scheduleChanges.find((change) => change.date === selectedKey);
@@ -388,6 +428,7 @@ function renderScheduleDatePicker() {
 
 function closeScheduleDialog() {
   scheduleDialog.hidden = true;
+  unlockPageScrollIfNoDialog();
 }
 
 async function saveSchedule(event) {
@@ -486,6 +527,7 @@ async function handleMarkButtonClick() {
 }
 
 function openEditForm(key) {
+  lockPageScroll();
   editingKey = key;
   editDialog.hidden = false;
   editConfirmPanel.hidden = true;
@@ -497,11 +539,36 @@ function closeEditDialog(confirmed = false) {
   editDialog.hidden = true;
   editConfirmPanel.hidden = false;
   editForm.hidden = true;
+  unlockPageScrollIfNoDialog();
 
   if (editDialogResolver) {
     editDialogResolver(confirmed);
     editDialogResolver = null;
   }
+}
+
+function lockPageScroll() {
+  if (document.body.classList.contains("is-dialog-open")) return;
+
+  lockedScrollY = window.scrollY;
+  document.body.classList.add("is-dialog-open");
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${lockedScrollY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+}
+
+function unlockPageScrollIfNoDialog() {
+  if (!editDialog.hidden || !scheduleDialog.hidden) return;
+
+  document.body.classList.remove("is-dialog-open");
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+  window.scrollTo(0, lockedScrollY);
 }
 
 function showEditForm() {
@@ -653,6 +720,9 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   wheel.replaceChildren();
   wheel._pickerOptions = options;
   wheel._pickerOnSelect = onSelect;
+  wheel.ontouchmove = (event) => {
+    event.stopPropagation();
+  };
   topSpacer.className = "wheel-picker__spacer";
   bottomSpacer.className = "wheel-picker__spacer";
   wheel.append(topSpacer);
@@ -1123,5 +1193,3 @@ function formatRelativeDoseDay(date) {
 
   return date.toLocaleDateString([], { weekday: "long" });
 }
-
-showAuthGate("Loading", "Checking your sign-in...", false);

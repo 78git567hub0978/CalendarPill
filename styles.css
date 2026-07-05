@@ -37,6 +37,11 @@ body {
   background: var(--bg);
 }
 
+body.is-dialog-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
 button {
   border: 0;
   font: inherit;
@@ -692,6 +697,7 @@ h3 {
   place-items: center;
   padding: 18px;
   background: rgba(0, 0, 0, 0.55);
+  overscroll-behavior: contain;
 }
 
 .edit-dialog[hidden] {
@@ -702,6 +708,8 @@ h3 {
   width: min(100%, 360px);
   max-height: calc(100svh - 36px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 20px;
   border-radius: 14px;
   background: var(--panel);
@@ -757,14 +765,18 @@ h3 {
 
 .time-wheel-picker {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  grid-template-columns: repeat(2, 78px);
+  justify-content: center;
+  gap: 10px;
 }
 
 .wheel-picker {
   position: relative;
+  width: 78px;
   height: 148px;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
   border: 0;
   border-radius: 12px;
   color: #222;
