@@ -793,10 +793,7 @@ h3 {
   border: 0;
   border-radius: 10px;
   color: #222;
-  background:
-    linear-gradient(#f7f7f7, rgba(247, 247, 247, 0) 34%),
-    linear-gradient(rgba(247, 247, 247, 0) 66%, #f7f7f7),
-    #f7f7f7;
+  background: #f7f7f7;
   scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
 }
@@ -818,6 +815,7 @@ h3 {
   position: relative;
   z-index: 1;
   display: grid;
+  width: 100%;
   place-items: center;
   scroll-snap-align: center;
   color: #aaa;
@@ -825,12 +823,13 @@ h3 {
   font-weight: 500;
   line-height: 1;
   transform: scale(1);
+  transform-origin: center;
   transition: color 120ms ease, transform 120ms ease;
 }
 
 .wheel-picker__option.is-selected {
   color: #222;
-  transform: scale(1.36);
+  transform: scale(1.62);
 }
 
 .edit-field textarea {
