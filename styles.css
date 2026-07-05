@@ -778,20 +778,20 @@ h3 {
 
 .time-wheel-picker {
   display: grid;
-  grid-template-columns: repeat(2, 58px);
+  grid-template-columns: repeat(2, 42px);
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .wheel-picker {
   position: relative;
-  width: 58px;
+  width: 42px;
   height: 148px;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   color: #222;
   background:
     linear-gradient(#f7f7f7, rgba(247, 247, 247, 0) 34%),
@@ -806,16 +806,7 @@ h3 {
 }
 
 .wheel-picker::before {
-  content: "";
-  position: absolute;
-  left: 3px;
-  right: 3px;
-  top: 54px;
-  z-index: 0;
-  height: 40px;
-  border-radius: 8px;
-  background: rgba(220, 220, 225, 0.72);
-  pointer-events: none;
+  content: none;
 }
 
 .wheel-picker__spacer,
