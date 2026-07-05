@@ -90,6 +90,7 @@ const datePickerNext = document.querySelector("#datePickerNext");
 const scheduleHourWheel = document.querySelector("#scheduleHourWheel");
 const scheduleMinuteWheel = document.querySelector("#scheduleMinuteWheel");
 const cancelScheduleButton = document.querySelector("#cancelScheduleButton");
+const noEndDateButton = document.querySelector("#noEndDateButton");
 let editDialogResolver = null;
 let editingKey = "";
 let editingBaseDate = today;
@@ -122,6 +123,7 @@ cancelScheduleButton.addEventListener("click", closeScheduleDialog);
 scheduleForm.addEventListener("submit", saveSchedule);
 scheduleStartInput.addEventListener("click", () => openScheduleDatePicker(scheduleStartInput));
 scheduleEndInput.addEventListener("click", () => openScheduleDatePicker(scheduleEndInput));
+noEndDateButton.addEventListener("click", clearScheduleEndDate);
 datePickerPrev.addEventListener("click", () => {
   datePickerMonth = new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1, 1);
   renderScheduleDatePicker();
@@ -477,6 +479,11 @@ function closeScheduleDialog() {
   unlockPageScrollIfNoDialog();
 }
 
+function clearScheduleEndDate() {
+  scheduleEndInput.value = "";
+  scheduleDatePicker.hidden = true;
+}
+
 async function saveSchedule(event) {
   event.preventDefault();
   hideAppError();
@@ -767,6 +774,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   wheel.replaceChildren();
   wheel._pickerOptions = options;
   wheel._pickerOnSelect = onSelect;
+  wheel._lastTapTime = 0;
   wheel.ontouchmove = (event) => {
     event.stopPropagation();
   };
@@ -782,6 +790,15 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
     button.dataset.value = String(option.value);
     if (option.value === selectedValue) button.classList.add("is-selected");
     button.addEventListener("click", () => selectWheelValue(wheel, option.value));
+    button.addEventListener("dblclick", () => openWheelNumberInput(wheel));
+    button.addEventListener("touchend", (event) => {
+      const now = Date.now();
+      if (now - wheel._lastTapTime < 320) {
+        event.preventDefault();
+        openWheelNumberInput(wheel);
+      }
+      wheel._lastTapTime = now;
+    });
     wheel.append(button);
   });
 
@@ -800,6 +817,50 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   requestAnimationFrame(() => {
     wheel.scrollTop = selectedIndex * optionHeight;
   });
+}
+
+function openWheelNumberInput(wheel) {
+  const options = wheel._pickerOptions || [];
+  if (!options.length || wheel.querySelector(".wheel-picker__input")) return;
+
+  const currentValue = getCenteredWheelValue(wheel);
+  const input = document.createElement("input");
+  input.className = "wheel-picker__input";
+  input.type = "text";
+  input.inputMode = "numeric";
+  input.pattern = "[0-9]*";
+  input.maxLength = 2;
+  input.value = String(currentValue ?? 0).padStart(2, "0");
+
+  const closeInput = (shouldApply) => {
+    if (shouldApply) {
+      const typedValue = Number(input.value);
+      const matchingOption = options.find((option) => option.value === typedValue);
+      if (matchingOption) {
+        selectWheelValue(wheel, matchingOption.value);
+      }
+    }
+    input.remove();
+  };
+
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "").slice(0, 2);
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      closeInput(true);
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeInput(false);
+    }
+  });
+  input.addEventListener("blur", () => closeInput(true));
+
+  wheel.append(input);
+  input.focus();
+  input.select();
 }
 
 function getCenteredWheelValue(wheel) {

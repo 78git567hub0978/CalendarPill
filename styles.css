@@ -766,6 +766,16 @@ h3 {
   font-size: 1rem;
 }
 
+.no-end-date-action {
+  justify-self: start;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: #050505;
+  background: #8a8a8a;
+  font-weight: 800;
+}
+
 .edit-field input,
 .edit-field textarea {
   width: 100%;
@@ -812,16 +822,25 @@ h3 {
 }
 
 .wheel-picker__option {
+  -webkit-appearance: none;
+  appearance: none;
   position: relative;
   z-index: 1;
   display: grid;
   width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
   place-items: center;
   scroll-snap-align: center;
   color: #aaa;
+  background: transparent;
   font-size: 1.04rem;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
   line-height: 1;
+  text-align: center;
   transform: scale(1);
   transform-origin: center;
   transition: color 120ms ease, transform 120ms ease;
@@ -830,6 +849,28 @@ h3 {
 .wheel-picker__option.is-selected {
   color: #222;
   transform: scale(1.62);
+}
+
+.wheel-picker__input {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 38px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 8px;
+  color: #222;
+  background: #f7f7f7;
+  font: inherit;
+  font-size: 1.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  line-height: 1;
+  text-align: center;
+  outline: none;
 }
 
 .edit-field textarea {
