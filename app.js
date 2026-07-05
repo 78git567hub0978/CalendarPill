@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v103";
+const APP_VERSION = "v106";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -81,18 +81,23 @@ const editMinuteWheel = document.querySelector("#editMinuteWheel");
 const editNotesInput = document.querySelector("#editNotesInput");
 const openSettingsButton = document.querySelector("#openSettingsButton");
 const scheduleDialog = document.querySelector("#scheduleDialog");
+const scheduleChoicePanel = document.querySelector("#scheduleChoicePanel");
 const scheduleForm = document.querySelector("#scheduleForm");
+const scheduleDialogTitle = document.querySelector("#scheduleDialogTitle");
+const scheduleDateLabel = document.querySelector("#scheduleDateLabel");
 const scheduleStartInput = document.querySelector("#scheduleStartInput");
-const scheduleEndInput = document.querySelector("#scheduleEndInput");
 const scheduleDatePicker = document.querySelector("#scheduleDatePicker");
 const scheduleDatePickerGrid = document.querySelector("#scheduleDatePickerGrid");
 const datePickerTitle = document.querySelector("#datePickerTitle");
 const datePickerPrev = document.querySelector("#datePickerPrev");
 const datePickerNext = document.querySelector("#datePickerNext");
+const scheduleTimeField = document.querySelector("#scheduleTimeField");
 const scheduleHourWheel = document.querySelector("#scheduleHourWheel");
 const scheduleMinuteWheel = document.querySelector("#scheduleMinuteWheel");
 const cancelScheduleButton = document.querySelector("#cancelScheduleButton");
-const noEndDateButton = document.querySelector("#noEndDateButton");
+const scheduleSaveButton = document.querySelector("#scheduleSaveButton");
+const startScheduleButton = document.querySelector("#startScheduleButton");
+const stopPrepButton = document.querySelector("#stopPrepButton");
 let editDialogResolver = null;
 let editingKey = "";
 let editingBaseDate = today;
@@ -100,6 +105,7 @@ let editHour = 7;
 let editMinute = 0;
 let scheduleHour = 7;
 let scheduleMinute = 0;
+let scheduleMode = "start";
 let activeScheduleDateInput = scheduleStartInput;
 let datePickerMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let lockedScrollY = 0;
@@ -125,8 +131,8 @@ scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 cancelScheduleButton.addEventListener("click", closeScheduleDialog);
 scheduleForm.addEventListener("submit", saveSchedule);
 scheduleStartInput.addEventListener("click", () => openScheduleDatePicker(scheduleStartInput));
-scheduleEndInput.addEventListener("click", () => openScheduleDatePicker(scheduleEndInput));
-noEndDateButton.addEventListener("click", stopTakingOnSelectedDate);
+startScheduleButton.addEventListener("click", () => openScheduleForm("start"));
+stopPrepButton.addEventListener("click", () => openScheduleForm("stop"));
 datePickerPrev.addEventListener("click", () => {
   datePickerMonth = new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1, 1);
   renderScheduleDatePicker();
@@ -323,6 +329,7 @@ function renderCalendar() {
     const date = new Date(gridStart);
     date.setDate(gridStart.getDate() + index);
     const key = toKey(date);
+    const inViewedMonth = date.getMonth() === viewedMonth.getMonth();
     const ended = isEndedDate(date);
     const button = document.createElement("button");
     const time = document.createElement("time");
@@ -332,7 +339,13 @@ function renderCalendar() {
     button.setAttribute("aria-label", getDayLabel(date));
     button.dataset.date = key;
 
-    if (date.getMonth() !== viewedMonth.getMonth()) button.classList.add("is-outside");
+    if (!inViewedMonth) {
+      button.classList.add("is-outside");
+      button.disabled = true;
+      button.setAttribute("aria-hidden", "true");
+      calendarGrid.append(button);
+      continue;
+    }
     if (key === toKey(today)) button.classList.add("is-today");
     if (key === toKey(selectedDate)) button.classList.add("is-selected");
     if (logs[key] && !isFutureDate(date) && !ended) {
@@ -434,10 +447,12 @@ function renderSelectedMeta(loggedAt, date) {
   const timingLine = document.createElement("span");
   const notesLine = document.createElement("span");
   const timing = getTimingDetail(loggedAt, date);
+  const timingClass = getTakenStatusClass(timing);
   const notes = getLogNotes(loggedAt);
   selectedMeta.className = "";
+  takenLine.className = `taken-detail ${timingClass}`.trim();
   takenLine.textContent = `Taken at ${formatTime(new Date(getLogTakenAt(loggedAt)))}.`;
-  timingLine.className = `timing-detail ${getTakenStatusClass(timing)}`.trim();
+  timingLine.className = `timing-detail ${timingClass}`.trim();
   timingLine.textContent = timing;
   notesLine.className = "notes-detail";
   notesLine.textContent = notes ? `Notes: ${notes}` : "No notes";
@@ -458,12 +473,27 @@ function getScheduledDoseLine(date) {
 
 function openScheduleDialog() {
   lockPageScroll();
-  const currentSchedule = getEffectiveSchedule(selectedDate);
-  const selectedKey = toKey(selectedDate);
-  const existingChange = settings.scheduleChanges.find((change) => change.date === selectedKey);
-  scheduleStartInput.value = toKey(selectedDate);
-  scheduleEndInput.value = existingChange?.endDate || "";
+  scheduleChoicePanel.hidden = false;
+  scheduleForm.hidden = true;
   scheduleDatePicker.hidden = true;
+  scheduleDialog.hidden = false;
+}
+
+function openScheduleForm(mode) {
+  scheduleMode = mode;
+  const currentSchedule = getEffectiveSchedule(selectedDate);
+  const isStopMode = mode === "stop";
+
+  scheduleChoicePanel.hidden = true;
+  scheduleForm.hidden = false;
+  scheduleDialogTitle.textContent = isStopMode ? "Stop PreP" : "Start new schedule";
+  scheduleDateLabel.textContent = isStopMode ? "Stop date" : "Date start";
+  scheduleStartInput.value = toKey(selectedDate);
+  scheduleDatePicker.hidden = true;
+  scheduleTimeField.hidden = isStopMode;
+  scheduleSaveButton.textContent = isStopMode ? "Mark stopped" : "Save";
+  scheduleSaveButton.classList.toggle("is-stop-save", isStopMode);
+
   setScheduleWheelTime(currentSchedule || defaultSchedule);
   renderPickerWheel(scheduleHourWheel, getHourWheelOptions(), scheduleHour, (value) => {
     scheduleHour = value;
@@ -471,7 +501,6 @@ function openScheduleDialog() {
   renderPickerWheel(scheduleMinuteWheel, getMinuteWheelOptions(), scheduleMinute, (value) => {
     scheduleMinute = value;
   });
-  scheduleDialog.hidden = false;
 }
 
 function openScheduleDatePicker(input) {
@@ -522,30 +551,27 @@ function closeScheduleDialogOnBackdrop(event) {
   }
 }
 
-function stopTakingOnSelectedDate() {
-  scheduleEndInput.value = toKey(selectedDate);
-  scheduleDatePicker.hidden = true;
-}
-
 async function saveSchedule(event) {
   event.preventDefault();
   hideAppError();
 
   const startDate = parseInputDate(scheduleStartInput.value);
   if (!startDate) return;
-  const endDate = scheduleEndInput.value ? parseInputDate(scheduleEndInput.value) : null;
-  if (scheduleEndInput.value && !endDate) return;
 
   const previousSettings = {
     scheduleChanges: [...settings.scheduleChanges],
   };
-  const change = {
-    date: toKey(startDate),
-    schedule: getScheduleWheelTime(),
-  };
-  if (endDate && endDate >= startDate) {
-    change.endDate = toKey(endDate);
-  }
+  const startKey = toKey(startDate);
+  const change = scheduleMode === "stop"
+    ? {
+        date: startKey,
+        endDate: startKey,
+        schedule: getEffectiveSchedule(startDate) || defaultSchedule,
+      }
+    : {
+        date: startKey,
+        schedule: getScheduleWheelTime(),
+      };
   settings.scheduleChanges = [
     ...settings.scheduleChanges.filter((item) => item.date !== change.date),
     change,

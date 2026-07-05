@@ -471,6 +471,8 @@ h3 {
 .day.is-outside {
   color: #5f5b55;
   background: transparent;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .day.is-today time {
@@ -625,6 +627,19 @@ h3 {
   display: block;
 }
 
+.taken-detail {
+  color: var(--off-schedule);
+  font-weight: 800;
+}
+
+.taken-detail.is-on-time {
+  color: var(--accent);
+}
+
+.taken-detail.is-early {
+  color: var(--early);
+}
+
 .timing-detail {
   margin-top: 3px;
   color: var(--off-schedule);
@@ -684,11 +699,39 @@ h3 {
   background: #6b6b6b;
 }
 
-#scheduleStartInput,
-#scheduleEndInput {
+#scheduleStartInput {
   min-height: 46px;
   padding: 0 12px;
   cursor: pointer;
+}
+
+.schedule-choice {
+  display: grid;
+  gap: 14px;
+}
+
+.schedule-choice[hidden] {
+  display: none;
+}
+
+.schedule-choice h2 {
+  flex: none;
+  margin-bottom: 2px;
+}
+
+.schedule-choice .dialog-action {
+  width: 100%;
+}
+
+.stop-prep-action,
+.dialog-action.is-stop-save {
+  color: #050505;
+  background: #8a8a8a;
+}
+
+.stop-prep-action:active,
+.dialog-action.is-stop-save:active {
+  background: #777;
 }
 
 .date-picker {
