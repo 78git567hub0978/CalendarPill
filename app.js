@@ -716,6 +716,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   const bottomSpacer = document.createElement("div");
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === selectedValue));
   let scrollTimeout = 0;
+  let scrollAnimationFrame = 0;
 
   wheel.replaceChildren();
   wheel._pickerOptions = options;
@@ -740,16 +741,25 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
 
   wheel.append(bottomSpacer);
   wheel.onscroll = () => {
+    cancelAnimationFrame(scrollAnimationFrame);
+    scrollAnimationFrame = requestAnimationFrame(() => {
+      selectWheelValue(wheel, getCenteredWheelValue(wheel), false);
+    });
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
-      const index = Math.min(options.length - 1, Math.max(0, Math.round(wheel.scrollTop / optionHeight)));
-      selectWheelValue(wheel, options[index].value, false);
+      selectWheelValue(wheel, getCenteredWheelValue(wheel), false);
     }, 90);
   };
 
   requestAnimationFrame(() => {
     wheel.scrollTop = selectedIndex * optionHeight;
   });
+}
+
+function getCenteredWheelValue(wheel) {
+  const options = wheel._pickerOptions || [];
+  const index = Math.min(options.length - 1, Math.max(0, Math.round(wheel.scrollTop / 40)));
+  return options[index]?.value;
 }
 
 function selectWheelValue(wheel, value, shouldScroll = true) {
@@ -768,11 +778,9 @@ function selectWheelValue(wheel, value, shouldScroll = true) {
 }
 
 function getWheelValue(wheel, fallbackValue) {
-  const options = wheel._pickerOptions || [];
-  if (!options.length) return fallbackValue;
+  const selectedValue = getCenteredWheelValue(wheel);
+  if (selectedValue === undefined) return fallbackValue;
 
-  const index = Math.min(options.length - 1, Math.max(0, Math.round(wheel.scrollTop / 40)));
-  const selectedValue = options[index].value;
   selectWheelValue(wheel, selectedValue, false);
   return selectedValue;
 }
