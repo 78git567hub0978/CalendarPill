@@ -2,6 +2,7 @@ console.log("app.js loaded");
 
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
+const localCachePrefix = "pill-calendar-cache";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYAeH3upeJDJITdTTnECSphPr5IIW-R_4",
@@ -119,6 +120,7 @@ editCancelButton.addEventListener("click", closeEditDialog);
 editClearButton.addEventListener("click", clearEditedLogEntry);
 editForm.addEventListener("submit", saveEditedLogEntry);
 openSettingsButton.addEventListener("click", openScheduleDialog);
+scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 cancelScheduleButton.addEventListener("click", closeScheduleDialog);
 scheduleForm.addEventListener("submit", saveSchedule);
 scheduleStartInput.addEventListener("click", () => openScheduleDatePicker(scheduleStartInput));
@@ -214,10 +216,20 @@ async function handleAuthStateChanged(user) {
   }
 
   accessWasDenied = false;
-  showAuthGate("Loading", "Loading your medicine log...", false);
+  const showedCachedData = loadCachedUserData(user.uid);
+  if (showedCachedData) {
+    isDataReady = true;
+    authGate.hidden = true;
+    appShell.hidden = false;
+    render();
+    startCountdownTimer();
+  } else {
+    showAuthGate("Loading", "Loading your medicine log...", false);
+  }
 
   try {
     await loadUserData(user.uid);
+    writeCachedUserData(user.uid);
     isDataReady = true;
     authGate.hidden = true;
     appShell.hidden = false;
@@ -478,6 +490,12 @@ function renderScheduleDatePicker() {
 function closeScheduleDialog() {
   scheduleDialog.hidden = true;
   unlockPageScrollIfNoDialog();
+}
+
+function closeScheduleDialogOnBackdrop(event) {
+  if (event.target === scheduleDialog) {
+    closeScheduleDialog();
+  }
 }
 
 function clearScheduleEndDate() {
@@ -775,6 +793,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   wheel.replaceChildren();
   wheel._pickerOptions = options;
   wheel._pickerOnSelect = onSelect;
+  wheel._pickerValue = selectedValue;
   wheel._lastTapTime = 0;
   wheel.ontouchmove = (event) => {
     event.stopPropagation();
@@ -878,6 +897,7 @@ function selectWheelValue(wheel, value, shouldScroll = true) {
   const selectedIndex = options.findIndex((option) => option.value === value);
   if (selectedIndex < 0) return;
 
+  wheel._pickerValue = value;
   wheel.querySelectorAll(".wheel-picker__option").forEach((option, index) => {
     option.classList.toggle("is-selected", index === selectedIndex);
   });
@@ -889,7 +909,7 @@ function selectWheelValue(wheel, value, shouldScroll = true) {
 }
 
 function getWheelValue(wheel, fallbackValue) {
-  const selectedValue = getCenteredWheelValue(wheel);
+  const selectedValue = wheel._pickerValue ?? getCenteredWheelValue(wheel);
   if (selectedValue === undefined) return fallbackValue;
 
   selectWheelValue(wheel, selectedValue, false);
@@ -913,6 +933,39 @@ async function loadUserData(uid) {
     const entry = parseLogEntry(logSnapshot.data());
     if (entry.takenAt) logs[logSnapshot.id] = entry;
   });
+}
+
+function getCacheKey(uid) {
+  return `${localCachePrefix}-${uid}`;
+}
+
+function loadCachedUserData(uid) {
+  try {
+    const cachedData = JSON.parse(localStorage.getItem(getCacheKey(uid)) || "null");
+    if (!cachedData) return false;
+
+    settings = parseSettings(cachedData.settings || {});
+    logs = {};
+    Object.entries(cachedData.logs || {}).forEach(([key, entry]) => {
+      const parsedEntry = parseLogEntry(entry);
+      if (parsedEntry.takenAt) logs[key] = parsedEntry;
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function writeCachedUserData(uid) {
+  try {
+    localStorage.setItem(getCacheKey(uid), JSON.stringify({
+      settings,
+      logs,
+      cachedAt: new Date().toISOString(),
+    }));
+  } catch {
+    // Cache is only for faster display; Firestore remains the source of truth.
+  }
 }
 
 function getDefaultSettings() {
@@ -948,11 +1001,13 @@ function parseLogEntry(entry) {
 async function saveSettingsToFirestore() {
   requireSignedInUser();
   await setDoc(doc(db, "users", currentUser.uid, "settings", "main"), settings);
+  writeCachedUserData(currentUser.uid);
 }
 
 async function saveLogToFirestore(key, entry) {
   requireSignedInUser();
   await setDoc(doc(db, "users", currentUser.uid, "logs", key), entry);
+  writeCachedUserData(currentUser.uid);
 }
 
 async function saveEditedLogToFirestore(previousKey, nextKey, entry) {
@@ -967,11 +1022,13 @@ async function saveEditedLogToFirestore(previousKey, nextKey, entry) {
   batch.delete(doc(db, "users", currentUser.uid, "logs", previousKey));
   batch.set(doc(db, "users", currentUser.uid, "logs", nextKey), entry);
   await batch.commit();
+  writeCachedUserData(currentUser.uid);
 }
 
 async function deleteLogFromFirestore(key) {
   requireSignedInUser();
   await deleteDoc(doc(db, "users", currentUser.uid, "logs", key));
+  writeCachedUserData(currentUser.uid);
 }
 
 function requireSignedInUser() {
