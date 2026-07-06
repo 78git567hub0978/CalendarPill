@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v138";
+const APP_VERSION = "v140";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -69,6 +69,7 @@ const scheduleStatus = document.querySelector("#scheduleStatus");
 const appVersion = document.querySelector("#appVersion");
 const selectedTitle = document.querySelector("#selectedTitle");
 const selectedMeta = document.querySelector("#selectedMeta");
+const markActionMessage = document.querySelector("#markActionMessage");
 const markTakenButton = document.querySelector("#markTakenButton");
 const editDialog = document.querySelector("#editDialog");
 const editConfirmPanel = document.querySelector("#editConfirmPanel");
@@ -132,6 +133,7 @@ calendarGrid.addEventListener("touchend", handleCalendarTouchEnd);
 calendarGrid.addEventListener("wheel", handleCalendarWheel, { passive: false });
 
 markTakenButton.addEventListener("click", handleMarkButtonClick);
+editDialog.addEventListener("click", closeEditDialogOnBackdrop);
 editNoButton.addEventListener("click", () => closeEditDialog(false));
 editYesButton.addEventListener("click", showEditForm);
 editCancelButton.addEventListener("click", closeEditDialog);
@@ -315,6 +317,16 @@ function hideAppError() {
   appError.textContent = "";
 }
 
+function showMarkActionMessage(message) {
+  markActionMessage.hidden = false;
+  markActionMessage.textContent = message;
+}
+
+function hideMarkActionMessage() {
+  markActionMessage.hidden = true;
+  markActionMessage.textContent = "";
+}
+
 function startCountdownTimer() {
   if (countdownTimer) return;
   countdownTimer = setInterval(renderCountdown, 1000);
@@ -478,6 +490,7 @@ function renderDetails() {
   selectedTitle.textContent = dateFormatter.format(selectedDate);
   renderSelectedMeta(loggedAt, selectedDate);
   renderMarkButton(loggedAt, selectedDate);
+  hideMarkActionMessage();
   markTakenButton.disabled = false;
 }
 
@@ -720,7 +733,7 @@ async function handleMarkButtonClick() {
   const key = toKey(selectedDate);
 
   if (isFutureDate(selectedDate)) {
-    showAppError("Cannot mark future date.");
+    showMarkActionMessage("Cannot mark a future date.");
     return;
   }
 
@@ -755,6 +768,12 @@ function closeEditDialog(confirmed = false) {
   if (editDialogResolver) {
     editDialogResolver(confirmed);
     editDialogResolver = null;
+  }
+}
+
+function closeEditDialogOnBackdrop(event) {
+  if (event.target === editDialog) {
+    closeEditDialog(false);
   }
 }
 
