@@ -251,21 +251,21 @@ h3 {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 7px;
-  min-height: 44px;
-  margin: 0 0 14px;
-  padding: 10px 16px;
+  gap: 5px;
+  min-height: 34px;
+  margin: 0 18px 12px;
+  padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
   background: var(--panel);
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
 .pills-remaining strong {
   color: var(--ink);
-  font-size: 1.04rem;
+  font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
@@ -944,12 +944,10 @@ h3 {
 }
 
 .settings-notes-preview {
-  min-height: 92px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  min-height: 0;
+  padding: 0;
   color: var(--ink);
-  background: #101010;
+  background: transparent;
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.35;
@@ -1178,6 +1176,10 @@ h3 {
 }
 
 .pills-taken-wheel[hidden] {
+  display: none;
+}
+
+.refill-pills-wheel[hidden] {
   display: none;
 }
 

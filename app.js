@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v154";
+const APP_VERSION = "v158";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -93,6 +93,8 @@ const pillsTakenWheelWrap = document.querySelector("#pillsTakenWheelWrap");
 const pillsTakenWheel = document.querySelector("#pillsTakenWheel");
 const refillToggleButton = document.querySelector("#refillToggleButton");
 const refillPillsField = document.querySelector("#refillPillsField");
+const refillPillsButton = document.querySelector("#refillPillsButton");
+const refillPillsWheelWrap = document.querySelector("#refillPillsWheelWrap");
 const refillPillsWheel = document.querySelector("#refillPillsWheel");
 const openSettingsButton = document.querySelector("#openSettingsButton");
 const scheduleDialog = document.querySelector("#scheduleDialog");
@@ -133,6 +135,7 @@ let isEditNotesOpen = false;
 let isPillsTakenWheelOpen = false;
 let editRefillStart = false;
 let editStartingPills = 30;
+let isRefillPillsWheelOpen = false;
 let scheduleHour = 7;
 let scheduleMinute = 0;
 let scheduleMode = "start";
@@ -173,6 +176,7 @@ editPillsToggleButton.addEventListener("click", toggleEditPillsField);
 editNotesToggleButton.addEventListener("click", toggleEditNotesField);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
+refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 openSettingsButton.addEventListener("click", openScheduleDialog);
 scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 openSettingsNotesButton.addEventListener("click", openSettingsNotesForm);
@@ -916,6 +920,7 @@ function fillEditForm(key) {
   isPillsTakenWheelOpen = false;
   editRefillStart = isRefillStart(entry);
   editStartingPills = getLogStartingPills(entry) || 30;
+  isRefillPillsWheelOpen = false;
   setEditTimeFromDate(takenAt);
   editNotesInput.value = entry ? getLogNotes(entry) : "";
   renderEditTimeControls();
@@ -1081,17 +1086,20 @@ function renderPillsTakenControls() {
 
 function toggleEditRefillStart() {
   editRefillStart = !editRefillStart;
+  if (!editRefillStart) isRefillPillsWheelOpen = false;
   renderRefillControls();
 }
 
 function renderRefillControls() {
   refillToggleButton.classList.toggle("is-active", editRefillStart);
   refillToggleButton.textContent = editRefillStart
-    ? "New Bottle"
+    ? "This is A New Bottle"
     : "Mark this as New Bottle";
   refillPillsField.hidden = !editRefillStart;
+  refillPillsButton.textContent = `Start pills: ${editStartingPills}`;
+  refillPillsWheelWrap.hidden = !isRefillPillsWheelOpen;
 
-  if (!editRefillStart) return;
+  if (!editRefillStart || !isRefillPillsWheelOpen) return;
 
   renderPickerWheel(
     refillPillsWheel,
@@ -1099,6 +1107,7 @@ function renderRefillControls() {
     editStartingPills,
     (value) => {
       editStartingPills = value;
+      refillPillsButton.textContent = `Start pills: ${value}`;
     },
     {
       allowCustom: true,
@@ -1108,6 +1117,11 @@ function renderRefillControls() {
       formatInput: (value) => String(value),
     }
   );
+}
+
+function toggleRefillPillsWheel() {
+  isRefillPillsWheelOpen = !isRefillPillsWheelOpen;
+  renderRefillControls();
 }
 
 function setScheduleWheelTime(schedule) {
