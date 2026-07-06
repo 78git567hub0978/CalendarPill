@@ -314,8 +314,7 @@ h3 {
 }
 
 .month-panel,
-.detail-panel,
-.settings-panel {
+.detail-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -337,14 +336,14 @@ h3 {
   padding: 0 11px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--ink);
-  background: #151515;
+  color: #050505;
+  background: var(--ink);
   font-size: 0.72rem;
   font-weight: 800;
 }
 
 .today-jump:active {
-  background: #242424;
+  background: #dedbd4;
 }
 
 .weekday-row,
@@ -406,13 +405,22 @@ h3 {
   }
 }
 
+.legend-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+}
+
 .legend-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 12px;
-  margin: 16px 0 0;
-  padding: 12px 0 0;
-  border-top: 1px solid var(--line);
+  margin: 0;
+  padding: 0;
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
@@ -468,6 +476,37 @@ h3 {
 
 .legend-dot.is-ended {
   background: #3a3a3a;
+}
+
+.legend-tools {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.legend-settings-button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: #151515;
+}
+
+.legend-settings-button:active {
+  background: #242424;
+}
+
+.legend-settings-button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
 }
 
 .day {
@@ -714,6 +753,7 @@ h3 {
 
 .notes-detail {
   margin-top: 3px;
+  color: var(--missed);
 }
 
 .schedule-change-detail {
@@ -733,24 +773,8 @@ h3 {
   gap: 8px;
 }
 
-.settings-panel {
-  display: grid;
-  gap: 14px;
-  margin-top: 14px;
-  padding: 14px;
-}
-
 .settings-wheel-picker .wheel-picker {
   height: 128px;
-}
-
-.settings-save {
-  width: 100%;
-  background: #7d7d7d;
-}
-
-.settings-save:active {
-  background: #6b6b6b;
 }
 
 #scheduleStartInput {
