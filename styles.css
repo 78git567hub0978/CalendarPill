@@ -270,14 +270,19 @@ h3 {
   font-feature-settings: "tnum";
 }
 
-.pills-remaining.is-low,
-.pills-remaining.is-low strong {
-  color: var(--missed);
+.pills-remaining.is-low {
+  color: #050505;
+  background: var(--missed);
 }
 
-.pills-remaining.is-enough,
+.pills-remaining.is-enough {
+  color: #050505;
+  background: var(--accent);
+}
+
+.pills-remaining.is-low strong,
 .pills-remaining.is-enough strong {
-  color: var(--accent);
+  color: #050505;
 }
 
 .timer-line {
@@ -901,6 +906,59 @@ h3 {
 
 .settings-notes-action:active {
   background: #777;
+}
+
+.settings-notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.settings-notes-header h2 {
+  flex: 0 1 auto;
+  margin-bottom: 0;
+}
+
+.settings-notes-edit {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: #8a8a8a;
+  background: transparent;
+}
+
+.settings-notes-edit[hidden] {
+  display: none;
+}
+
+.settings-notes-edit svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.settings-notes-preview {
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #101010;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.settings-notes-preview[hidden],
+#settingsNotesActions[hidden] {
+  display: none;
 }
 
 .stop-prep-action,

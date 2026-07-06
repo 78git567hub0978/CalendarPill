@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v152";
+const APP_VERSION = "v154";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -99,7 +99,11 @@ const scheduleDialog = document.querySelector("#scheduleDialog");
 const scheduleChoicePanel = document.querySelector("#scheduleChoicePanel");
 const openSettingsNotesButton = document.querySelector("#openSettingsNotesButton");
 const settingsNotesForm = document.querySelector("#settingsNotesForm");
+const settingsNotesPreview = document.querySelector("#settingsNotesPreview");
+const settingsNotesEditField = document.querySelector("#settingsNotesEditField");
 const settingsNotesInput = document.querySelector("#settingsNotesInput");
+const settingsNotesActions = document.querySelector("#settingsNotesActions");
+const editSettingsNotesButton = document.querySelector("#editSettingsNotesButton");
 const cancelSettingsNotesButton = document.querySelector("#cancelSettingsNotesButton");
 const scheduleForm = document.querySelector("#scheduleForm");
 const scheduleDialogTitle = document.querySelector("#scheduleDialogTitle");
@@ -140,6 +144,7 @@ let calendarTouchStartX = 0;
 let isCalendarSliding = false;
 let calendarSlideTimeout = 0;
 let lastTodayJumpAt = 0;
+let isSettingsNotesEditing = false;
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   changeViewedMonth(-1);
@@ -172,6 +177,7 @@ openSettingsButton.addEventListener("click", openScheduleDialog);
 scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 openSettingsNotesButton.addEventListener("click", openSettingsNotesForm);
 settingsNotesForm.addEventListener("submit", saveSettingsNotes);
+editSettingsNotesButton.addEventListener("click", enableSettingsNotesEditing);
 cancelSettingsNotesButton.addEventListener("click", closeSettingsNotesForm);
 cancelScheduleButton.addEventListener("click", closeScheduleDialog);
 scheduleForm.addEventListener("submit", saveSchedule);
@@ -629,13 +635,29 @@ function openSettingsNotesForm() {
   scheduleForm.hidden = true;
   scheduleDatePicker.hidden = true;
   settingsNotesForm.hidden = false;
-  settingsNotesInput.value = settings.notes || "";
-  settingsNotesInput.focus();
+  isSettingsNotesEditing = false;
+  renderSettingsNotesForm();
 }
 
 function closeSettingsNotesForm() {
   settingsNotesForm.hidden = true;
   scheduleChoicePanel.hidden = false;
+}
+
+function enableSettingsNotesEditing() {
+  isSettingsNotesEditing = true;
+  renderSettingsNotesForm();
+  settingsNotesInput.focus();
+}
+
+function renderSettingsNotesForm() {
+  const notes = settings.notes || "";
+  settingsNotesPreview.textContent = notes || "No notes";
+  settingsNotesInput.value = notes;
+  settingsNotesPreview.hidden = isSettingsNotesEditing;
+  settingsNotesEditField.hidden = !isSettingsNotesEditing;
+  settingsNotesActions.hidden = !isSettingsNotesEditing;
+  editSettingsNotesButton.hidden = isSettingsNotesEditing;
 }
 
 async function saveSettingsNotes(event) {
@@ -647,7 +669,8 @@ async function saveSettingsNotes(event) {
 
   try {
     await saveSettingsToFirestore();
-    closeSettingsNotesForm();
+    isSettingsNotesEditing = false;
+    renderSettingsNotesForm();
   } catch (error) {
     settings.notes = previousNotes;
     showAppError("Could not save settings notes. Please try again.");
