@@ -877,6 +877,31 @@ h3 {
   width: 100%;
 }
 
+.settings-info-bubble {
+  justify-self: center;
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: #050505;
+  background: var(--ink);
+  font-weight: 900;
+}
+
+.settings-info-bubble:active {
+  background: #dedbd4;
+}
+
+.settings-info-value {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.settings-info-value[hidden] {
+  display: none;
+}
+
 .stop-prep-action,
 .dialog-action.is-stop-save {
   color: #050505;

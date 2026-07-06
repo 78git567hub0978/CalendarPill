@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v144";
+const APP_VERSION = "v145";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -107,6 +107,8 @@ const cancelScheduleButton = document.querySelector("#cancelScheduleButton");
 const scheduleSaveButton = document.querySelector("#scheduleSaveButton");
 const startScheduleButton = document.querySelector("#startScheduleButton");
 const stopPrepButton = document.querySelector("#stopPrepButton");
+const loveYourselfButton = document.querySelector("#loveYourselfButton");
+const loveYourselfValue = document.querySelector("#loveYourselfValue");
 let editDialogResolver = null;
 let editingKey = "";
 let editingBaseDate = today;
@@ -153,6 +155,7 @@ editForm.addEventListener("submit", saveEditedLogEntry);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
 openSettingsButton.addEventListener("click", openScheduleDialog);
+loveYourselfButton.addEventListener("click", toggleLoveYourselfId);
 scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 cancelScheduleButton.addEventListener("click", closeScheduleDialog);
 scheduleForm.addEventListener("submit", saveSchedule);
@@ -596,7 +599,12 @@ function openScheduleDialog() {
   scheduleChoicePanel.hidden = false;
   scheduleForm.hidden = true;
   scheduleDatePicker.hidden = true;
+  loveYourselfValue.hidden = true;
   scheduleDialog.hidden = false;
+}
+
+function toggleLoveYourselfId() {
+  loveYourselfValue.hidden = !loveYourselfValue.hidden;
 }
 
 function openScheduleForm(mode) {
