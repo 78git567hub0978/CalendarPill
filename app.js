@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v129";
+const APP_VERSION = "v130";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -539,7 +539,9 @@ function renderSelectedMeta(loggedAt, date) {
   notesLine.className = "notes-detail";
   notesLine.textContent = notes ? `Notes: ${notes}` : "No notes";
   if (scheduledLine) selectedMeta.append(scheduledLine);
-  selectedMeta.append(takenLine, timingLine, notesLine);
+  selectedMeta.append(takenLine);
+  if (timing !== "Taken on time") selectedMeta.append(timingLine);
+  selectedMeta.append(notesLine);
   if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
 }
 
