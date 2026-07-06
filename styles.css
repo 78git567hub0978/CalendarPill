@@ -920,7 +920,7 @@ h3 {
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(0, 0, 0, 0.55);
+  background: #000;
   overscroll-behavior: contain;
 }
 
