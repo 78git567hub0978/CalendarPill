@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v143";
+const APP_VERSION = "v144";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -388,6 +388,7 @@ function renderCalendar() {
     if (!logs[key] && isUpcomingDate(date) && !ended) button.classList.add("is-future");
     if (!logs[key] && isMissedDate(date, logs[key])) button.classList.add("is-missed");
     if (!ended && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
+    if (isRefillStart(logs[key])) button.classList.add("is-refill-start");
     if (logs[key] && getLogNotes(logs[key]).trim()) button.classList.add("has-notes");
 
     time.dateTime = key;

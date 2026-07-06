@@ -482,6 +482,11 @@ h3 {
 }
 
 .legend-dot.is-schedule-change {
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.legend-dot.is-refill-start {
   border-radius: 0;
   background: var(--ink);
   clip-path: polygon(
@@ -669,14 +674,29 @@ h3 {
 .day.is-schedule-change time {
   position: relative;
   z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  background: var(--date-fill);
+}
+
+.day.is-selected.is-schedule-change time {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.day.is-refill-start time {
+  position: relative;
+  z-index: 1;
   width: 38px;
   height: 38px;
   border-radius: 0;
   font-size: 0.78rem;
   background: transparent;
+  box-shadow: none;
 }
 
-.day.is-schedule-change time::after {
+.day.is-refill-start time::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -700,11 +720,11 @@ h3 {
   );
 }
 
-.day.is-selected.is-schedule-change time {
+.day.is-selected.is-refill-start time {
   box-shadow: none;
 }
 
-.day.is-selected.is-schedule-change time::before {
+.day.is-selected.is-refill-start time::before {
   content: "";
   position: absolute;
   left: 50%;
