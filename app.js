@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v130";
+const APP_VERSION = "v131";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";

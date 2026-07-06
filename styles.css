@@ -580,7 +580,7 @@ h3 {
 }
 
 .day.is-selected time {
-  box-shadow: 0 0 0 2px var(--accent);
+  box-shadow: 0 0 0 2px var(--ink);
 }
 
 .day.is-taken {
@@ -673,7 +673,7 @@ h3 {
   width: 46px;
   height: 46px;
   transform: translate(-50%, -50%);
-  background: var(--accent);
+  background: var(--ink);
   clip-path: polygon(
     50% 0%,
     64% 32%,
