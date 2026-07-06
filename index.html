@@ -56,16 +56,18 @@
             <li><span class="legend-dot is-taken"></span>Taken on time</li>
             <li><span class="legend-dot is-off-schedule"></span>Taken late</li>
             <li><span class="legend-dot is-missed"></span>Missed</li>
-            <li><span class="legend-dot is-future"></span>Upcoming</li>
+            <li class="legend-item-with-tools">
+              <span class="legend-item-label"><span class="legend-dot is-future"></span>Upcoming</span>
+              <span class="legend-tools">
+                <button id="openSettingsButton" class="legend-settings-button" type="button" aria-label="Settings">
+                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="m19.4 15 .1 2.2-2.1 1.2-1.9-1a7.7 7.7 0 0 1-1.6.9L13.7 20h-3.4l-.3-1.7a7.7 7.7 0 0 1-1.6-.9l-1.9 1-2.1-1.2.1-2.2a7.7 7.7 0 0 1-.8-1.5L2 12l1.7-1.5c.2-.5.5-1 .8-1.5l-.1-2.2 2.1-1.2 1.9 1c.5-.4 1-.7 1.6-.9l.3-1.7h3.4l.3 1.7c.6.2 1.1.5 1.6.9l1.9-1 2.1 1.2-.1 2.2c.3.5.6 1 .8 1.5L22 12l-1.7 1.5c-.2.5-.5 1-.9 1.5Z"/></svg>
+                </button>
+              </span>
+            </li>
             <li><span class="legend-dot is-schedule-change"></span>Schedule change</li>
             <li><span class="legend-dot is-ended"></span>PreP stopped</li>
-            <li class="legend-tools">
-              <button id="openSettingsButton" class="legend-settings-button" type="button" aria-label="Settings">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="m19.4 15 .1 2.2-2.1 1.2-1.9-1a7.7 7.7 0 0 1-1.6.9L13.7 20h-3.4l-.3-1.7a7.7 7.7 0 0 1-1.6-.9l-1.9 1-2.1-1.2.1-2.2a7.7 7.7 0 0 1-.8-1.5L2 12l1.7-1.5c.2-.5.5-1 .8-1.5l-.1-2.2 2.1-1.2 1.9 1c.5-.4 1-.7 1.6-.9l.3-1.7h3.4l.3 1.7c.6.2 1.1.5 1.6.9l1.9-1 2.1 1.2-.1 2.2c.3.5.6 1 .8 1.5L22 12l-1.7 1.5c-.2.5-.5 1-.9 1.5Z"/></svg>
-              </button>
-              <p class="app-version" id="appVersion" aria-label="App version"></p>
-            </li>
           </ul>
+          <p class="app-version" id="appVersion" aria-label="App version"></p>
         </div>
       </section>
 
