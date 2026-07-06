@@ -187,6 +187,14 @@ h3 {
   line-height: 1.18;
 }
 
+.new-bottle-title-detail {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .icon-button {
   display: grid;
   width: 44px;
@@ -1162,7 +1170,7 @@ h3 {
 }
 
 .pills-taken-field {
-  justify-items: start;
+  justify-items: center;
 }
 
 .pill-count-button {

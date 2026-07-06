@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v158";
+const APP_VERSION = "v161";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -531,11 +531,23 @@ function handleCalendarWheel(event) {
 function renderDetails() {
   const key = toKey(selectedDate);
   const loggedAt = isFutureDate(selectedDate) ? null : logs[key];
-  selectedTitle.textContent = dateFormatter.format(selectedDate);
+  renderSelectedTitle(loggedAt);
   renderSelectedMeta(loggedAt, selectedDate);
   renderMarkButton(loggedAt, selectedDate);
   hideMarkActionMessage();
   markTakenButton.disabled = false;
+}
+
+function renderSelectedTitle(loggedAt) {
+  selectedTitle.replaceChildren();
+  selectedTitle.append(document.createTextNode(dateFormatter.format(selectedDate)));
+
+  if (!isRefillStart(loggedAt)) return;
+
+  const bottleDetail = document.createElement("span");
+  bottleDetail.className = "new-bottle-title-detail";
+  bottleDetail.textContent = `This is a new bottle with ${getLogStartingPills(loggedAt)} pills.`;
+  selectedTitle.append(bottleDetail);
 }
 
 function renderPillsRemaining() {
@@ -1080,6 +1092,9 @@ function renderPillsTakenControls() {
     (value) => {
       editPillsTaken = value;
       pillsTakenButton.textContent = String(value);
+    },
+    {
+      loop: false,
     }
   );
 }
@@ -1115,6 +1130,7 @@ function renderRefillControls() {
       min: 1,
       max: 999,
       formatInput: (value) => String(value),
+      loop: false,
     }
   );
 }
@@ -1184,8 +1200,9 @@ function getPillsTakenOptions() {
 
 function renderPickerWheel(wheel, options, selectedValue, onSelect, config = {}) {
   const optionHeight = 40;
-  const loopedOptions = [...options, ...options, ...options];
-  const middleLoopStart = options.length;
+  const shouldLoop = config.loop !== false;
+  const loopedOptions = shouldLoop ? [...options, ...options, ...options] : options;
+  const middleLoopStart = shouldLoop ? options.length : 0;
   const topSpacer = document.createElement("div");
   const bottomSpacer = document.createElement("div");
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === selectedValue));
@@ -1199,6 +1216,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect, config = {})
   wheel._pickerValue = selectedValue;
   wheel._pickerOptionHeight = optionHeight;
   wheel._pickerLoopStart = middleLoopStart;
+  wheel._pickerLoop = shouldLoop;
   wheel._isLoopingScroll = false;
   wheel._lastTapTime = 0;
   wheel.ontouchmove = (event) => {
@@ -1233,7 +1251,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect, config = {})
 
   wheel.append(bottomSpacer);
   wheel.onscroll = () => {
-    keepWheelScrollInMiddleLoop(wheel);
+    if (wheel._pickerLoop) keepWheelScrollInMiddleLoop(wheel);
     if (wheel._isLoopingScroll) return;
 
     cancelAnimationFrame(scrollAnimationFrame);
@@ -1335,7 +1353,10 @@ function getCenteredWheelValue(wheel) {
   if (!options.length) return undefined;
 
   const optionHeight = wheel._pickerOptionHeight || 40;
-  const index = wrapIndex(Math.round(wheel.scrollTop / optionHeight), options.length);
+  const rawIndex = Math.round(wheel.scrollTop / optionHeight);
+  const index = wheel._pickerLoop
+    ? wrapIndex(rawIndex, options.length)
+    : clamp(rawIndex, 0, options.length - 1);
   return options[index]?.value;
 }
 
@@ -1346,7 +1367,8 @@ function selectWheelValue(wheel, value, shouldScroll = true) {
 
   wheel._pickerValue = value;
   wheel.querySelectorAll(".wheel-picker__option").forEach((option, index) => {
-    option.classList.toggle("is-selected", wrapIndex(index, options.length) === selectedIndex);
+    const optionIndex = wheel._pickerLoop ? wrapIndex(index, options.length) : index;
+    option.classList.toggle("is-selected", optionIndex === selectedIndex);
   });
   wheel._pickerOnSelect?.(value);
 
@@ -1377,6 +1399,10 @@ function keepWheelScrollInMiddleLoop(wheel) {
 
 function wrapIndex(index, length) {
   return ((index % length) + length) % length;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function getWheelValue(wheel, fallbackValue) {
