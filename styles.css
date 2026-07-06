@@ -183,16 +183,21 @@ h3 {
 }
 
 #selectedTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   font-size: 0.96rem;
   line-height: 1.18;
+  white-space: nowrap;
 }
 
 .new-bottle-title-detail {
-  display: inline-block;
-  margin-left: 6px;
+  display: inline;
+  min-width: 0;
   color: var(--accent);
-  font-size: 0.78rem;
+  font-size: 0.62rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .icon-button {
