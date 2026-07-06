@@ -409,9 +409,11 @@ h3 {
 
 .legend-box {
   position: relative;
-  margin: 16px 0 0;
-  padding: 12px 0 10px;
-  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding: 14px 14px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
 }
 
 .legend-list {
@@ -479,8 +481,8 @@ h3 {
 
 .legend-tools {
   position: absolute;
-  right: 0;
-  top: 32px;
+  right: 14px;
+  top: 30px;
   display: grid;
   justify-items: center;
 }
