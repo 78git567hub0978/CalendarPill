@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v145";
+const APP_VERSION = "v152";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -79,9 +79,15 @@ const editNoButton = document.querySelector("#editNoButton");
 const editYesButton = document.querySelector("#editYesButton");
 const editCancelButton = document.querySelector("#editCancelButton");
 const editClearButton = document.querySelector("#editClearButton");
+const editTimeToggleButton = document.querySelector("#editTimeToggleButton");
+const editTimeField = document.querySelector("#editTimeField");
 const editHourWheel = document.querySelector("#editHourWheel");
 const editMinuteWheel = document.querySelector("#editMinuteWheel");
+const editNotesToggleButton = document.querySelector("#editNotesToggleButton");
+const editNotesField = document.querySelector("#editNotesField");
 const editNotesInput = document.querySelector("#editNotesInput");
+const editPillsToggleButton = document.querySelector("#editPillsToggleButton");
+const editPillsField = document.querySelector("#editPillsField");
 const pillsTakenButton = document.querySelector("#pillsTakenButton");
 const pillsTakenWheelWrap = document.querySelector("#pillsTakenWheelWrap");
 const pillsTakenWheel = document.querySelector("#pillsTakenWheel");
@@ -91,6 +97,10 @@ const refillPillsWheel = document.querySelector("#refillPillsWheel");
 const openSettingsButton = document.querySelector("#openSettingsButton");
 const scheduleDialog = document.querySelector("#scheduleDialog");
 const scheduleChoicePanel = document.querySelector("#scheduleChoicePanel");
+const openSettingsNotesButton = document.querySelector("#openSettingsNotesButton");
+const settingsNotesForm = document.querySelector("#settingsNotesForm");
+const settingsNotesInput = document.querySelector("#settingsNotesInput");
+const cancelSettingsNotesButton = document.querySelector("#cancelSettingsNotesButton");
 const scheduleForm = document.querySelector("#scheduleForm");
 const scheduleDialogTitle = document.querySelector("#scheduleDialogTitle");
 const scheduleDateLabel = document.querySelector("#scheduleDateLabel");
@@ -107,14 +117,15 @@ const cancelScheduleButton = document.querySelector("#cancelScheduleButton");
 const scheduleSaveButton = document.querySelector("#scheduleSaveButton");
 const startScheduleButton = document.querySelector("#startScheduleButton");
 const stopPrepButton = document.querySelector("#stopPrepButton");
-const loveYourselfButton = document.querySelector("#loveYourselfButton");
-const loveYourselfValue = document.querySelector("#loveYourselfValue");
 let editDialogResolver = null;
 let editingKey = "";
 let editingBaseDate = today;
 let editHour = 7;
 let editMinute = 0;
 let editPillsTaken = 1;
+let isEditTimeOpen = false;
+let isEditPillsOpen = false;
+let isEditNotesOpen = false;
 let isPillsTakenWheelOpen = false;
 let editRefillStart = false;
 let editStartingPills = 30;
@@ -152,11 +163,16 @@ editYesButton.addEventListener("click", showEditForm);
 editCancelButton.addEventListener("click", closeEditDialog);
 editClearButton.addEventListener("click", clearEditedLogEntry);
 editForm.addEventListener("submit", saveEditedLogEntry);
+editTimeToggleButton.addEventListener("click", toggleEditTimeField);
+editPillsToggleButton.addEventListener("click", toggleEditPillsField);
+editNotesToggleButton.addEventListener("click", toggleEditNotesField);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
 openSettingsButton.addEventListener("click", openScheduleDialog);
-loveYourselfButton.addEventListener("click", toggleLoveYourselfId);
 scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
+openSettingsNotesButton.addEventListener("click", openSettingsNotesForm);
+settingsNotesForm.addEventListener("submit", saveSettingsNotes);
+cancelSettingsNotesButton.addEventListener("click", closeSettingsNotesForm);
 cancelScheduleButton.addEventListener("click", closeScheduleDialog);
 scheduleForm.addEventListener("submit", saveSchedule);
 scheduleStartInput.addEventListener("click", () => openScheduleDatePicker(scheduleStartInput));
@@ -514,7 +530,10 @@ function renderDetails() {
 
 function renderPillsRemaining() {
   const remaining = getPillsRemaining();
+  const pillBubble = pillsRemainingCount.closest(".pills-remaining");
   pillsRemainingCount.textContent = remaining === null ? "00" : String(remaining).padStart(2, "0");
+  pillBubble.classList.toggle("is-low", remaining !== null && remaining <= 15);
+  pillBubble.classList.toggle("is-enough", remaining !== null && remaining > 15);
 }
 
 function renderMarkButton(loggedAt, date) {
@@ -567,9 +586,11 @@ function renderSelectedMeta(loggedAt, date) {
   const timing = getTimingDetail(loggedAt, date);
   const timingClass = getTakenStatusClass(timing);
   const notes = getLogNotes(loggedAt);
+  const pillsTaken = getLogPillsTaken(loggedAt);
+  const pillText = pillsTaken === 1 ? "pill" : "pills";
   selectedMeta.className = "";
   takenLine.className = `taken-detail ${timingClass}`.trim();
-  takenLine.textContent = `Taken at ${formatTime(new Date(getLogTakenAt(loggedAt)))}.`;
+  takenLine.textContent = `Took ${pillsTaken} ${pillText} at ${formatTime(new Date(getLogTakenAt(loggedAt)))}.`;
   timingLine.className = `timing-detail ${timingClass}`.trim();
   timingLine.textContent = timing;
   notesLine.className = "notes-detail";
@@ -597,14 +618,41 @@ function getScheduledDoseLine(date) {
 function openScheduleDialog() {
   lockPageScroll();
   scheduleChoicePanel.hidden = false;
+  settingsNotesForm.hidden = true;
   scheduleForm.hidden = true;
   scheduleDatePicker.hidden = true;
-  loveYourselfValue.hidden = true;
   scheduleDialog.hidden = false;
 }
 
-function toggleLoveYourselfId() {
-  loveYourselfValue.hidden = !loveYourselfValue.hidden;
+function openSettingsNotesForm() {
+  scheduleChoicePanel.hidden = true;
+  scheduleForm.hidden = true;
+  scheduleDatePicker.hidden = true;
+  settingsNotesForm.hidden = false;
+  settingsNotesInput.value = settings.notes || "";
+  settingsNotesInput.focus();
+}
+
+function closeSettingsNotesForm() {
+  settingsNotesForm.hidden = true;
+  scheduleChoicePanel.hidden = false;
+}
+
+async function saveSettingsNotes(event) {
+  event.preventDefault();
+  hideAppError();
+
+  const previousNotes = settings.notes || "";
+  settings.notes = settingsNotesInput.value.trim();
+
+  try {
+    await saveSettingsToFirestore();
+    closeSettingsNotesForm();
+  } catch (error) {
+    settings.notes = previousNotes;
+    showAppError("Could not save settings notes. Please try again.");
+    console.error(error);
+  }
 }
 
 function openScheduleForm(mode) {
@@ -839,17 +887,17 @@ function fillEditForm(key) {
   const takenAt = entry ? new Date(getLogTakenAt(entry)) : getDefaultEditTime(selectedDay);
   editingBaseDate = selectedDay;
   editPillsTaken = getLogPillsTaken(entry);
+  isEditTimeOpen = false;
+  isEditPillsOpen = false;
+  isEditNotesOpen = false;
   isPillsTakenWheelOpen = false;
   editRefillStart = isRefillStart(entry);
   editStartingPills = getLogStartingPills(entry) || 30;
   setEditTimeFromDate(takenAt);
-  renderPickerWheel(editHourWheel, getHourWheelOptions(), editHour, (value) => {
-    editHour = value;
-  });
-  renderPickerWheel(editMinuteWheel, getMinuteWheelOptions(), editMinute, (value) => {
-    editMinute = value;
-  });
   editNotesInput.value = entry ? getLogNotes(entry) : "";
+  renderEditTimeControls();
+  renderEditNotesControls();
+  renderEditPillsControls();
   renderPillsTakenControls();
   renderRefillControls();
 }
@@ -934,12 +982,56 @@ function setEditTimeFromDate(date) {
 }
 
 function getEditedTime() {
-  editHour = getWheelValue(editHourWheel, editHour);
-  editMinute = getWheelValue(editMinuteWheel, editMinute);
+  if (isEditTimeOpen) {
+    editHour = getWheelValue(editHourWheel, editHour);
+    editMinute = getWheelValue(editMinuteWheel, editMinute);
+  }
+
   return {
     hours: editHour,
     minutes: editMinute,
   };
+}
+
+function toggleEditTimeField() {
+  isEditTimeOpen = !isEditTimeOpen;
+  renderEditTimeControls();
+}
+
+function renderEditTimeControls() {
+  editTimeField.hidden = !isEditTimeOpen;
+  editTimeToggleButton.classList.toggle("is-active", isEditTimeOpen);
+
+  if (!isEditTimeOpen) return;
+
+  renderPickerWheel(editHourWheel, getHourWheelOptions(), editHour, (value) => {
+    editHour = value;
+  });
+  renderPickerWheel(editMinuteWheel, getMinuteWheelOptions(), editMinute, (value) => {
+    editMinute = value;
+  });
+}
+
+function toggleEditPillsField() {
+  isEditPillsOpen = !isEditPillsOpen;
+  if (!isEditPillsOpen) isPillsTakenWheelOpen = false;
+  renderEditPillsControls();
+  renderPillsTakenControls();
+}
+
+function renderEditPillsControls() {
+  editPillsField.hidden = !isEditPillsOpen;
+  editPillsToggleButton.classList.toggle("is-active", isEditPillsOpen);
+}
+
+function toggleEditNotesField() {
+  isEditNotesOpen = !isEditNotesOpen;
+  renderEditNotesControls();
+}
+
+function renderEditNotesControls() {
+  editNotesField.hidden = !isEditNotesOpen;
+  editNotesToggleButton.classList.toggle("is-active", isEditNotesOpen);
 }
 
 function togglePillsTakenWheel() {
@@ -972,8 +1064,8 @@ function toggleEditRefillStart() {
 function renderRefillControls() {
   refillToggleButton.classList.toggle("is-active", editRefillStart);
   refillToggleButton.textContent = editRefillStart
-    ? "Starting Refill"
-    : "Mark this as Starting Refill";
+    ? "New Bottle"
+    : "Mark this as New Bottle";
   refillPillsField.hidden = !editRefillStart;
 
   if (!editRefillStart) return;
@@ -1313,6 +1405,7 @@ function writeCachedUserData(uid) {
 function getDefaultSettings() {
   return {
     scheduleChanges: [],
+    notes: "",
   };
 }
 
@@ -1328,6 +1421,7 @@ function parseSettings(savedSettings) {
 
   return {
     scheduleChanges: normalizeScheduleChanges(migratedChanges),
+    notes: typeof savedSettings.notes === "string" ? savedSettings.notes : "",
   };
 }
 

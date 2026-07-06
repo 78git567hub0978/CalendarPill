@@ -102,7 +102,18 @@
         <form class="edit-form" id="editForm" hidden>
           <h2>Edit dose</h2>
 
-          <label class="edit-field">
+          <button id="refillToggleButton" class="refill-toggle" type="button">Mark this as New Bottle</button>
+
+          <label class="edit-field refill-pills-field" id="refillPillsField" hidden>
+            <span>Starting Pills</span>
+            <div class="single-wheel-picker" aria-label="Choose starting pills">
+              <div class="wheel-picker" id="refillPillsWheel" aria-label="Choose starting pills"></div>
+            </div>
+          </label>
+
+          <button id="editTimeToggleButton" class="edit-option-button" type="button">Edit time</button>
+
+          <label class="edit-field" id="editTimeField" hidden>
             <span>Time</span>
             <div class="time-wheel-picker" aria-label="Choose time">
               <div class="wheel-picker" id="editHourWheel" aria-label="Choose hour"></div>
@@ -110,12 +121,9 @@
             </div>
           </label>
 
-          <label class="edit-field">
-            <span>Notes</span>
-            <textarea id="editNotesInput" rows="5" placeholder="Add notes"></textarea>
-          </label>
+          <button id="editPillsToggleButton" class="edit-option-button" type="button">Edit pills taken</button>
 
-          <div class="edit-field pills-taken-field">
+          <div class="edit-field pills-taken-field" id="editPillsField" hidden>
             <span>Pills taken</span>
             <button id="pillsTakenButton" class="pill-count-button" type="button">1</button>
             <div class="single-wheel-picker pills-taken-wheel" id="pillsTakenWheelWrap" aria-label="Choose pills taken" hidden>
@@ -123,13 +131,11 @@
             </div>
           </div>
 
-          <button id="refillToggleButton" class="refill-toggle" type="button">Mark this as Starting Refill</button>
+          <button id="editNotesToggleButton" class="edit-option-button" type="button">Add Notes</button>
 
-          <label class="edit-field refill-pills-field" id="refillPillsField" hidden>
-            <span>Starting Pills</span>
-            <div class="single-wheel-picker" aria-label="Choose starting pills">
-              <div class="wheel-picker" id="refillPillsWheel" aria-label="Choose starting pills"></div>
-            </div>
+          <label class="edit-field" id="editNotesField" hidden>
+            <span>Notes</span>
+            <textarea id="editNotesInput" rows="5" placeholder="Add notes"></textarea>
           </label>
 
           <div class="edit-dialog__actions">
@@ -146,11 +152,23 @@
       <div class="edit-dialog__panel" role="dialog" aria-modal="true" aria-labelledby="scheduleDialogTitle">
         <div class="schedule-choice" id="scheduleChoicePanel">
           <h2>Settings</h2>
-          <button class="settings-info-bubble" id="loveYourselfButton" type="button">LoveYourself ID</button>
-          <p class="settings-info-value" id="loveYourselfValue" hidden>LoveYourself ID: PRO-11208</p>
+          <p class="settings-info-value">LoveYourself ID: PRO-11208</p>
+          <button class="dialog-action settings-notes-action" id="openSettingsNotesButton" type="button">Notes</button>
           <button class="dialog-action dialog-action--yes" id="startScheduleButton" type="button">Start new schedule</button>
           <button class="dialog-action stop-prep-action" id="stopPrepButton" type="button">Stop PreP</button>
         </div>
+
+        <form class="edit-form" id="settingsNotesForm" hidden>
+          <h2>Notes</h2>
+          <label class="edit-field">
+            <span>Notes</span>
+            <textarea id="settingsNotesInput" rows="7" placeholder="Add notes"></textarea>
+          </label>
+          <div class="edit-dialog__actions">
+            <button id="cancelSettingsNotesButton" class="dialog-action dialog-action--no" type="button">Cancel</button>
+            <button class="dialog-action dialog-action--yes" type="submit">Save</button>
+          </div>
+        </form>
 
         <form class="edit-form" id="scheduleForm" hidden>
           <h2 id="scheduleDialogTitle">Change schedule</h2>
