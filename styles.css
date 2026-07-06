@@ -1089,10 +1089,15 @@ h3 {
 
 .clear-log-action {
   min-height: 42px;
+  padding: 0 18px;
   border-radius: 999px;
-  color: var(--rose);
-  background: transparent;
+  color: #050505;
+  background: #8a8a8a;
   font-weight: 900;
+}
+
+.clear-log-action:active {
+  background: #777;
 }
 
 @media (max-width: 370px) {
