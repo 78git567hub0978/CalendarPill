@@ -247,6 +247,29 @@ h3 {
   white-space: nowrap;
 }
 
+.pills-remaining {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  margin: 0 0 14px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.pills-remaining strong {
+  color: var(--ink);
+  font-size: 1.04rem;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
 .timer-line {
   display: flex;
   align-items: baseline;
@@ -1002,6 +1025,55 @@ h3 {
   grid-template-columns: repeat(2, 42px);
   justify-content: center;
   gap: 6px;
+}
+
+.single-wheel-picker {
+  display: grid;
+  grid-template-columns: 52px;
+  justify-content: center;
+}
+
+.single-wheel-picker .wheel-picker {
+  width: 52px;
+}
+
+.single-wheel-picker .wheel-picker__label {
+  width: 3ch;
+}
+
+.pills-taken-field {
+  justify-items: start;
+}
+
+.pill-count-button {
+  min-width: 54px;
+  min-height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: #050505;
+  background: var(--ink);
+  font-weight: 900;
+}
+
+.pills-taken-wheel[hidden] {
+  display: none;
+}
+
+.refill-toggle {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: #050505;
+  background: #8a8a8a;
+  font-weight: 900;
+}
+
+.refill-toggle.is-active {
+  background: var(--accent);
+}
+
+.refill-pills-field[hidden] {
+  display: none;
 }
 
 .wheel-picker {

@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v141";
+const APP_VERSION = "v143";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -66,6 +66,7 @@ const todayJumpButton = document.querySelector("#todayJumpButton");
 const statusStrip = document.querySelector(".status-strip");
 const countdownStatus = document.querySelector("#countdownStatus");
 const scheduleStatus = document.querySelector("#scheduleStatus");
+const pillsRemainingCount = document.querySelector("#pillsRemainingCount");
 const appVersion = document.querySelector("#appVersion");
 const selectedTitle = document.querySelector("#selectedTitle");
 const selectedMeta = document.querySelector("#selectedMeta");
@@ -81,6 +82,12 @@ const editClearButton = document.querySelector("#editClearButton");
 const editHourWheel = document.querySelector("#editHourWheel");
 const editMinuteWheel = document.querySelector("#editMinuteWheel");
 const editNotesInput = document.querySelector("#editNotesInput");
+const pillsTakenButton = document.querySelector("#pillsTakenButton");
+const pillsTakenWheelWrap = document.querySelector("#pillsTakenWheelWrap");
+const pillsTakenWheel = document.querySelector("#pillsTakenWheel");
+const refillToggleButton = document.querySelector("#refillToggleButton");
+const refillPillsField = document.querySelector("#refillPillsField");
+const refillPillsWheel = document.querySelector("#refillPillsWheel");
 const openSettingsButton = document.querySelector("#openSettingsButton");
 const scheduleDialog = document.querySelector("#scheduleDialog");
 const scheduleChoicePanel = document.querySelector("#scheduleChoicePanel");
@@ -105,6 +112,10 @@ let editingKey = "";
 let editingBaseDate = today;
 let editHour = 7;
 let editMinute = 0;
+let editPillsTaken = 1;
+let isPillsTakenWheelOpen = false;
+let editRefillStart = false;
+let editStartingPills = 30;
 let scheduleHour = 7;
 let scheduleMinute = 0;
 let scheduleMode = "start";
@@ -139,6 +150,8 @@ editYesButton.addEventListener("click", showEditForm);
 editCancelButton.addEventListener("click", closeEditDialog);
 editClearButton.addEventListener("click", clearEditedLogEntry);
 editForm.addEventListener("submit", saveEditedLogEntry);
+pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
+refillToggleButton.addEventListener("click", toggleEditRefillStart);
 openSettingsButton.addEventListener("click", openScheduleDialog);
 scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 cancelScheduleButton.addEventListener("click", closeScheduleDialog);
@@ -338,6 +351,7 @@ function render() {
   monthTitle.textContent = monthFormatter.format(viewedMonth);
   renderCalendar();
   renderDetails();
+  renderPillsRemaining();
   renderCountdown();
 }
 
@@ -492,6 +506,11 @@ function renderDetails() {
   renderMarkButton(loggedAt, selectedDate);
   hideMarkActionMessage();
   markTakenButton.disabled = false;
+}
+
+function renderPillsRemaining() {
+  const remaining = getPillsRemaining();
+  pillsRemainingCount.textContent = remaining === null ? "00" : String(remaining).padStart(2, "0");
 }
 
 function renderMarkButton(loggedAt, date) {
@@ -810,6 +829,10 @@ function fillEditForm(key) {
   const selectedDay = parseInputDate(key) || selectedDate;
   const takenAt = entry ? new Date(getLogTakenAt(entry)) : getDefaultEditTime(selectedDay);
   editingBaseDate = selectedDay;
+  editPillsTaken = getLogPillsTaken(entry);
+  isPillsTakenWheelOpen = false;
+  editRefillStart = isRefillStart(entry);
+  editStartingPills = getLogStartingPills(entry) || 30;
   setEditTimeFromDate(takenAt);
   renderPickerWheel(editHourWheel, getHourWheelOptions(), editHour, (value) => {
     editHour = value;
@@ -818,6 +841,8 @@ function fillEditForm(key) {
     editMinute = value;
   });
   editNotesInput.value = entry ? getLogNotes(entry) : "";
+  renderPillsTakenControls();
+  renderRefillControls();
 }
 
 function getDefaultEditTime(date) {
@@ -838,7 +863,13 @@ async function saveEditedLogEntry(event) {
   updatedDate.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
-  const entry = createLogEntry(updatedDate, editNotesInput.value.trim());
+  const entry = createLogEntry(
+    updatedDate,
+    editNotesInput.value.trim(),
+    editRefillStart,
+    editStartingPills,
+    editPillsTaken
+  );
 
   if (editingKey !== toKey(updatedDate)) {
     delete logs[editingKey];
@@ -902,6 +933,59 @@ function getEditedTime() {
   };
 }
 
+function togglePillsTakenWheel() {
+  isPillsTakenWheelOpen = !isPillsTakenWheelOpen;
+  renderPillsTakenControls();
+}
+
+function renderPillsTakenControls() {
+  pillsTakenButton.textContent = String(editPillsTaken);
+  pillsTakenWheelWrap.hidden = !isPillsTakenWheelOpen;
+
+  if (!isPillsTakenWheelOpen) return;
+
+  renderPickerWheel(
+    pillsTakenWheel,
+    getPillsTakenOptions(),
+    editPillsTaken,
+    (value) => {
+      editPillsTaken = value;
+      pillsTakenButton.textContent = String(value);
+    }
+  );
+}
+
+function toggleEditRefillStart() {
+  editRefillStart = !editRefillStart;
+  renderRefillControls();
+}
+
+function renderRefillControls() {
+  refillToggleButton.classList.toggle("is-active", editRefillStart);
+  refillToggleButton.textContent = editRefillStart
+    ? "Starting Refill"
+    : "Mark this as Starting Refill";
+  refillPillsField.hidden = !editRefillStart;
+
+  if (!editRefillStart) return;
+
+  renderPickerWheel(
+    refillPillsWheel,
+    getStartingPillOptions(editStartingPills),
+    editStartingPills,
+    (value) => {
+      editStartingPills = value;
+    },
+    {
+      allowCustom: true,
+      inputMaxLength: 3,
+      min: 1,
+      max: 999,
+      formatInput: (value) => String(value),
+    }
+  );
+}
+
 function setScheduleWheelTime(schedule) {
   scheduleHour = schedule.hours;
   scheduleMinute = schedule.minutes;
@@ -940,7 +1024,27 @@ function getMinuteWheelOptions() {
   }));
 }
 
-function renderPickerWheel(wheel, options, selectedValue, onSelect) {
+function getStartingPillOptions(selectedValue = 30) {
+  const values = [30, 60, 90];
+  const normalizedValue = normalizeStartingPills(selectedValue);
+  if (!values.includes(normalizedValue)) values.push(normalizedValue);
+
+  return values
+    .sort((first, second) => first - second)
+    .map((value) => ({
+      value,
+      label: String(value),
+    }));
+}
+
+function getPillsTakenOptions() {
+  return [1, 2].map((value) => ({
+    value,
+    label: String(value),
+  }));
+}
+
+function renderPickerWheel(wheel, options, selectedValue, onSelect, config = {}) {
   const optionHeight = 40;
   const loopedOptions = [...options, ...options, ...options];
   const middleLoopStart = options.length;
@@ -953,6 +1057,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
   wheel.replaceChildren();
   wheel._pickerOptions = options;
   wheel._pickerOnSelect = onSelect;
+  wheel._pickerConfig = config;
   wheel._pickerValue = selectedValue;
   wheel._pickerOptionHeight = optionHeight;
   wheel._pickerLoopStart = middleLoopStart;
@@ -1010,6 +1115,7 @@ function renderPickerWheel(wheel, options, selectedValue, onSelect) {
 
 function openWheelNumberInput(wheel) {
   const options = wheel._pickerOptions || [];
+  const config = wheel._pickerConfig || {};
   if (!options.length || wheel.querySelector(".wheel-picker__input")) return;
 
   const currentValue = getCenteredWheelValue(wheel);
@@ -1018,22 +1124,30 @@ function openWheelNumberInput(wheel) {
   input.type = "text";
   input.inputMode = "numeric";
   input.pattern = "[0-9]*";
-  input.maxLength = 2;
-  input.value = String(currentValue ?? 0).padStart(2, "0");
+  input.maxLength = config.inputMaxLength || 2;
+  input.value = config.formatInput
+    ? config.formatInput(currentValue ?? 0)
+    : String(currentValue ?? 0).padStart(2, "0");
+  let isClosed = false;
 
   const closeInput = (shouldApply) => {
+    if (isClosed) return;
+    isClosed = true;
+
     if (shouldApply) {
       const typedValue = Number(input.value);
       const matchingOption = options.find((option) => option.value === typedValue);
       if (matchingOption) {
         selectWheelValue(wheel, matchingOption.value);
+      } else if (config.allowCustom && isValidCustomWheelValue(typedValue, config)) {
+        addCustomWheelValue(wheel, typedValue);
       }
     }
     input.remove();
   };
 
   input.addEventListener("input", () => {
-    input.value = input.value.replace(/\D/g, "").slice(0, 2);
+    input.value = input.value.replace(/\D/g, "").slice(0, config.inputMaxLength || 2);
   });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1050,6 +1164,32 @@ function openWheelNumberInput(wheel) {
   wheel.append(input);
   input.focus();
   input.select();
+}
+
+function isValidCustomWheelValue(value, config) {
+  const min = Number.isInteger(config.min) ? config.min : 0;
+  const max = Number.isInteger(config.max) ? config.max : 99;
+  return Number.isInteger(value) && value >= min && value <= max;
+}
+
+function addCustomWheelValue(wheel, value) {
+  const options = [...(wheel._pickerOptions || []), {
+    value,
+    label: String(value),
+  }]
+    .filter((option, index, allOptions) => (
+      allOptions.findIndex((item) => item.value === option.value) === index
+    ))
+    .sort((first, second) => first.value - second.value);
+
+  renderPickerWheel(
+    wheel,
+    options,
+    value,
+    wheel._pickerOnSelect,
+    wheel._pickerConfig || {}
+  );
+  wheel._pickerOnSelect?.(value);
 }
 
 function getCenteredWheelValue(wheel) {
@@ -1184,10 +1324,14 @@ function parseSettings(savedSettings) {
 
 function parseLogEntry(entry) {
   const takenAt = typeof entry?.takenAt === "string" ? entry.takenAt : "";
+  const refillStart = entry?.refillStart === true;
 
   return {
     takenAt: Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt,
     notes: typeof entry?.notes === "string" ? entry.notes : "",
+    pillsTaken: normalizePillsTaken(entry?.pillsTaken),
+    refillStart,
+    startingPills: refillStart ? normalizeStartingPills(entry?.startingPills) : 0,
   };
 }
 
@@ -1268,10 +1412,13 @@ function schedulesMatch(first, second) {
   return first.hours === second.hours && first.minutes === second.minutes;
 }
 
-function createLogEntry(takenAt, notes) {
+function createLogEntry(takenAt, notes, refillStart = false, startingPills = 0, pillsTaken = 1) {
   return {
     takenAt: takenAt.toISOString(),
     notes,
+    pillsTaken: normalizePillsTaken(pillsTaken),
+    refillStart,
+    startingPills: refillStart ? normalizeStartingPills(startingPills) : 0,
   };
 }
 
@@ -1281,6 +1428,50 @@ function getLogTakenAt(entry) {
 
 function getLogNotes(entry) {
   return typeof entry === "string" ? "" : entry?.notes || "";
+}
+
+function getLogPillsTaken(entry) {
+  return typeof entry === "string" ? 1 : normalizePillsTaken(entry?.pillsTaken);
+}
+
+function isRefillStart(entry) {
+  return typeof entry !== "string" && entry?.refillStart === true;
+}
+
+function getLogStartingPills(entry) {
+  return isRefillStart(entry) ? normalizeStartingPills(entry.startingPills) : 0;
+}
+
+function normalizeStartingPills(value) {
+  const pills = Number(value);
+  return Number.isInteger(pills) && pills > 0 && pills <= 999 ? pills : 30;
+}
+
+function normalizePillsTaken(value) {
+  const pills = Number(value);
+  return pills === 2 ? 2 : 1;
+}
+
+function getPillsRemaining() {
+  const todayKey = toKey(today);
+  const refillKey = Object.entries(logs)
+    .filter(([key, entry]) => key <= todayKey && isRefillStart(entry))
+    .map(([key]) => key)
+    .sort()
+    .at(-1);
+
+  if (!refillKey) return null;
+
+  const startingPills = getLogStartingPills(logs[refillKey]);
+  const takenSinceRefill = Object.entries(logs)
+    .filter(([key, entry]) => (
+      key >= refillKey
+      && key <= todayKey
+      && Boolean(getLogTakenAt(entry))
+    ))
+    .reduce((total, [, entry]) => total + getLogPillsTaken(entry), 0);
+
+  return Math.max(0, startingPills - takenSinceRefill);
 }
 
 function stripTime(date) {

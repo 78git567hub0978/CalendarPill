@@ -27,6 +27,11 @@
         </div>
       </section>
 
+      <section class="pills-remaining" aria-label="Pills remaining">
+        <span>Pills Remaining:</span>
+        <strong id="pillsRemainingCount">00</strong>
+      </section>
+
       <section class="month-panel" aria-label="Medication calendar">
         <div class="month-controls">
           <button class="icon-button" id="prevMonth" type="button" aria-label="Previous month">
@@ -107,6 +112,23 @@
           <label class="edit-field">
             <span>Notes</span>
             <textarea id="editNotesInput" rows="5" placeholder="Add notes"></textarea>
+          </label>
+
+          <div class="edit-field pills-taken-field">
+            <span>Pills taken</span>
+            <button id="pillsTakenButton" class="pill-count-button" type="button">1</button>
+            <div class="single-wheel-picker pills-taken-wheel" id="pillsTakenWheelWrap" aria-label="Choose pills taken" hidden>
+              <div class="wheel-picker" id="pillsTakenWheel" aria-label="Choose pills taken"></div>
+            </div>
+          </div>
+
+          <button id="refillToggleButton" class="refill-toggle" type="button">Mark this as Starting Refill</button>
+
+          <label class="edit-field refill-pills-field" id="refillPillsField" hidden>
+            <span>Starting Pills</span>
+            <div class="single-wheel-picker" aria-label="Choose starting pills">
+              <div class="wheel-picker" id="refillPillsWheel" aria-label="Choose starting pills"></div>
+            </div>
           </label>
 
           <div class="edit-dialog__actions">
