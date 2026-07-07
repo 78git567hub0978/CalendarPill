@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v168";
+const APP_VERSION = "v169";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -821,22 +821,28 @@ async function uploadFeedPost(event) {
 
   const imageFile = feedImageInput.files?.[0];
   const caption = feedCaptionInput.value.trim();
-  if (!imageFile) {
-    showFeedStatus("Choose a picture first.", true);
+  if (!imageFile && !caption) {
+    showFeedStatus("Write a caption or choose a picture first.", true);
     return;
   }
 
   feedUploadButton.disabled = true;
-  showFeedStatus("Uploading...", false);
+  showFeedStatus("Posting...", false);
 
   try {
     const id = `${Date.now()}`;
-    const imagePath = `users/${currentUser.uid}/feed/${id}-${sanitizeFileName(imageFile.name)}`;
-    const imageRef = storageRef(storage, imagePath);
-    await uploadBytes(imageRef, imageFile, {
-      contentType: imageFile.type || "image/jpeg",
-    });
-    const imageUrl = await getDownloadURL(imageRef);
+    let imagePath = "";
+    let imageUrl = "";
+
+    if (imageFile) {
+      imagePath = `users/${currentUser.uid}/feed/${id}-${sanitizeFileName(imageFile.name)}`;
+      const imageRef = storageRef(storage, imagePath);
+      await uploadBytes(imageRef, imageFile, {
+        contentType: imageFile.type || "image/jpeg",
+      });
+      imageUrl = await getDownloadURL(imageRef);
+    }
+
     const post = {
       id,
       caption,
@@ -847,10 +853,10 @@ async function uploadFeedPost(event) {
     feedPosts = [post, ...feedPosts];
     await saveFeedPostToFirestore(post);
     feedForm.reset();
-    showFeedStatus("Uploaded.", false);
+    showFeedStatus("Posted.", false);
     renderFeed();
   } catch (error) {
-    showFeedStatus("Could not upload. Check Firebase Storage rules and try again.", true);
+    showFeedStatus("Could not post. Check Firebase setup and try again.", true);
     console.error(error);
   } finally {
     feedUploadButton.disabled = false;
@@ -864,24 +870,27 @@ function renderFeed() {
   if (!feedPosts.length) {
     const empty = document.createElement("p");
     empty.className = "feed-empty";
-    empty.textContent = "No uploads yet";
+    empty.textContent = "No posts yet";
     feedList.append(empty);
     return;
   }
 
   feedPosts.forEach((post) => {
     const article = document.createElement("article");
-    const image = document.createElement("img");
     const caption = document.createElement("p");
     const date = document.createElement("time");
 
     article.className = "feed-post";
-    image.src = post.imageUrl;
-    image.alt = post.caption || "Uploaded picture";
     caption.textContent = post.caption || "No caption";
     date.dateTime = post.createdAt;
     date.textContent = formatFeedDate(post.createdAt);
-    article.append(image, caption, date);
+    if (post.imageUrl) {
+      const image = document.createElement("img");
+      image.src = post.imageUrl;
+      image.alt = post.caption || "Uploaded picture";
+      article.append(image);
+    }
+    article.append(caption, date);
     feedList.append(article);
   });
 }
@@ -1565,7 +1574,7 @@ async function loadUserData(uid) {
   feedPosts = [];
   feedSnapshot.forEach((postSnapshot) => {
     const post = parseFeedPost(postSnapshot.id, postSnapshot.data());
-    if (post.imageUrl) feedPosts.push(post);
+    if (post.imageUrl || post.caption) feedPosts.push(post);
   });
   feedPosts.sort((first, second) => second.createdAt.localeCompare(first.createdAt));
 }
@@ -1588,7 +1597,7 @@ function loadCachedUserData(uid) {
     });
     (cachedData.feedPosts || []).forEach((entry) => {
       const parsedPost = parseFeedPost(entry.id, entry);
-      if (parsedPost.imageUrl) feedPosts.push(parsedPost);
+      if (parsedPost.imageUrl || parsedPost.caption) feedPosts.push(parsedPost);
     });
     return true;
   } catch {
