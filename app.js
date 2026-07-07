@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v172";
+const APP_VERSION = "v173";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -106,7 +106,6 @@ const refillPillsButton = document.querySelector("#refillPillsButton");
 const refillPillsWheelWrap = document.querySelector("#refillPillsWheelWrap");
 const refillPillsWheel = document.querySelector("#refillPillsWheel");
 const openSettingsButton = document.querySelector("#openSettingsButton");
-const openFeedButton = document.querySelector("#openFeedButton");
 const feedDialog = document.querySelector("#feedDialog");
 const feedForm = document.querySelector("#feedForm");
 const backFeedButton = document.querySelector("#backFeedButton");
@@ -205,7 +204,6 @@ pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 openSettingsButton.addEventListener("click", openScheduleDialog);
-openFeedButton.addEventListener("click", openFeedDialog);
 feedDialog.addEventListener("click", closeFeedDialogOnBackdrop);
 backFeedButton.addEventListener("click", closeFeedDialog);
 feedForm.addEventListener("submit", uploadFeedPost);
