@@ -626,9 +626,36 @@ h3 {
   border: 1px solid #5f5b55;
   border-radius: 999px;
   color: var(--muted);
+  background: transparent;
   font-size: 0.68rem;
   font-weight: 900;
   line-height: 1;
+}
+
+.feed-info:active {
+  color: var(--ink);
+}
+
+.post-actions-panel {
+  width: min(100%, 320px);
+}
+
+.post-actions-date {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.post-actions-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.post-actions-back {
+  color: #050505;
+  background: #8a8a8a;
 }
 
 .day {
@@ -1452,6 +1479,10 @@ h3 {
 
 .dialog-action--yes {
   background: var(--accent);
+}
+
+.dialog-action:disabled {
+  opacity: 0.58;
 }
 
 .clear-log-action {

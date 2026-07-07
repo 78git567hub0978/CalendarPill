@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v170";
+const APP_VERSION = "v172";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -22,6 +22,7 @@ let googleProvider = null;
 let GoogleAuthProvider = null;
 let collection = null;
 let deleteDoc = null;
+let deleteObject = null;
 let doc = null;
 let getDownloadURL = null;
 let getDoc = null;
@@ -37,6 +38,7 @@ const defaultSchedule = {
   minutes: 0,
 };
 const scheduleWindowMs = 10 * 60 * 1000;
+const feedUploadTimeoutMs = 30000;
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   month: "long",
@@ -113,6 +115,11 @@ const feedCaptionInput = document.querySelector("#feedCaptionInput");
 const feedStatus = document.querySelector("#feedStatus");
 const feedUploadButton = document.querySelector("#feedUploadButton");
 const feedList = document.querySelector("#feedList");
+const postActionsDialog = document.querySelector("#postActionsDialog");
+const postActionsDate = document.querySelector("#postActionsDate");
+const editPostButton = document.querySelector("#editPostButton");
+const deletePostButton = document.querySelector("#deletePostButton");
+const closePostActionsButton = document.querySelector("#closePostActionsButton");
 const scheduleDialog = document.querySelector("#scheduleDialog");
 const scheduleChoicePanel = document.querySelector("#scheduleChoicePanel");
 const openSettingsNotesButton = document.querySelector("#openSettingsNotesButton");
@@ -165,6 +172,8 @@ let isCalendarSliding = false;
 let calendarSlideTimeout = 0;
 let lastTodayJumpAt = 0;
 let isSettingsNotesEditing = false;
+let activeFeedPostId = "";
+let editingFeedPostId = "";
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   changeViewedMonth(-1);
@@ -200,6 +209,10 @@ openFeedButton.addEventListener("click", openFeedDialog);
 feedDialog.addEventListener("click", closeFeedDialogOnBackdrop);
 backFeedButton.addEventListener("click", closeFeedDialog);
 feedForm.addEventListener("submit", uploadFeedPost);
+postActionsDialog.addEventListener("click", closePostActionsOnBackdrop);
+closePostActionsButton.addEventListener("click", closePostActionsDialog);
+editPostButton.addEventListener("click", editActiveFeedPost);
+deletePostButton.addEventListener("click", deleteActiveFeedPost);
 scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 openSettingsNotesButton.addEventListener("click", openSettingsNotesForm);
 settingsNotesForm.addEventListener("submit", saveSettingsNotes);
@@ -250,6 +263,7 @@ async function startFirebase() {
     getDocs = firebaseFirestoreModule.getDocs;
     setDoc = firebaseFirestoreModule.setDoc;
     writeBatch = firebaseFirestoreModule.writeBatch;
+    deleteObject = firebaseStorageModule.deleteObject;
     getDownloadURL = firebaseStorageModule.getDownloadURL;
     storageRef = firebaseStorageModule.ref;
     uploadBytes = firebaseStorageModule.uploadBytes;
@@ -799,13 +813,15 @@ function closeScheduleDialogOnBackdrop(event) {
 function openFeedDialog() {
   lockPageScroll();
   hideFeedStatus();
-  feedForm.reset();
+  resetFeedComposer();
   renderFeed();
   feedDialog.hidden = false;
 }
 
 function closeFeedDialog() {
   feedDialog.hidden = true;
+  closePostActionsDialog();
+  resetFeedComposer();
   unlockPageScrollIfNoDialog();
 }
 
@@ -821,26 +837,38 @@ async function uploadFeedPost(event) {
 
   const imageFile = feedImageInput.files?.[0];
   const caption = feedCaptionInput.value.trim();
-  if (!imageFile && !caption) {
+  const isEditingPost = Boolean(editingFeedPostId);
+  const existingPost = editingFeedPostId
+    ? feedPosts.find((post) => post.id === editingFeedPostId)
+    : null;
+  if (!imageFile && !caption && !existingPost?.imageUrl) {
     showFeedStatus("Write a caption or choose a picture first.", true);
     return;
   }
 
   feedUploadButton.disabled = true;
-  showFeedStatus("Posting...", false);
+  showFeedStatus(isEditingPost ? "Saving..." : "Posting...", false);
 
   try {
-    const id = `${Date.now()}`;
-    let imagePath = "";
-    let imageUrl = "";
+    const id = editingFeedPostId || `${Date.now()}`;
+    let imagePath = existingPost?.imagePath || "";
+    let imageUrl = existingPost?.imageUrl || "";
 
     if (imageFile) {
       imagePath = `users/${currentUser.uid}/feed/${id}-${sanitizeFileName(imageFile.name)}`;
       const imageRef = storageRef(storage, imagePath);
-      await uploadBytes(imageRef, imageFile, {
-        contentType: imageFile.type || "image/jpeg",
-      });
-      imageUrl = await getDownloadURL(imageRef);
+      await withTimeout(
+        uploadBytes(imageRef, imageFile, {
+          contentType: imageFile.type || "image/jpeg",
+        }),
+        feedUploadTimeoutMs,
+        "Picture upload is taking too long. Check Firebase Storage or try a smaller picture."
+      );
+      imageUrl = await withTimeout(
+        getDownloadURL(imageRef),
+        feedUploadTimeoutMs,
+        "Could not get the picture link. Check Firebase Storage rules."
+      );
     }
 
     const post = {
@@ -848,19 +876,33 @@ async function uploadFeedPost(event) {
       caption,
       imagePath,
       imageUrl,
-      createdAt: new Date().toISOString(),
+      createdAt: existingPost?.createdAt || new Date().toISOString(),
+      updatedAt: editingFeedPostId ? new Date().toISOString() : "",
     };
-    feedPosts = [post, ...feedPosts];
+    feedPosts = editingFeedPostId
+      ? feedPosts.map((item) => item.id === post.id ? post : item)
+      : [post, ...feedPosts];
     await saveFeedPostToFirestore(post);
-    feedForm.reset();
-    showFeedStatus("Posted.", false);
+    resetFeedComposer();
+    showFeedStatus(isEditingPost ? "Saved." : "Posted.", false);
     renderFeed();
   } catch (error) {
-    showFeedStatus("Could not post. Check Firebase setup and try again.", true);
+    showFeedStatus(getFeedPostErrorMessage(error), true);
     console.error(error);
   } finally {
     feedUploadButton.disabled = false;
   }
+}
+
+function resetFeedComposer() {
+  editingFeedPostId = "";
+  feedForm.reset();
+  feedUploadButton.textContent = "Post";
+}
+
+function getFeedPostErrorMessage(error) {
+  if (error?.message) return error.message;
+  return "Could not post. Check Firebase setup and try again.";
 }
 
 function renderFeed() {
@@ -878,14 +920,16 @@ function renderFeed() {
   feedPosts.forEach((post) => {
     const article = document.createElement("article");
     const caption = document.createElement("p");
-    const info = document.createElement("span");
+    const info = document.createElement("button");
 
     article.className = "feed-post";
     caption.textContent = post.caption || "No caption";
     info.className = "feed-info";
+    info.type = "button";
     info.title = `Posted ${formatFeedDate(post.createdAt)}`;
     info.setAttribute("aria-label", `Posted ${formatFeedDate(post.createdAt)}`);
     info.textContent = "i";
+    info.addEventListener("click", () => openPostActionsDialog(post.id));
     if (post.imageUrl) {
       const image = document.createElement("img");
       image.src = post.imageUrl;
@@ -895,6 +939,64 @@ function renderFeed() {
     article.append(caption, info);
     feedList.append(article);
   });
+}
+
+function openPostActionsDialog(postId) {
+  const post = feedPosts.find((item) => item.id === postId);
+  if (!post) return;
+
+  activeFeedPostId = postId;
+  postActionsDate.textContent = `Posted ${formatFeedDate(post.createdAt)}`;
+  postActionsDialog.hidden = false;
+}
+
+function closePostActionsDialog() {
+  postActionsDialog.hidden = true;
+  activeFeedPostId = "";
+}
+
+function closePostActionsOnBackdrop(event) {
+  if (event.target === postActionsDialog) {
+    closePostActionsDialog();
+  }
+}
+
+function editActiveFeedPost() {
+  const post = feedPosts.find((item) => item.id === activeFeedPostId);
+  if (!post) return;
+
+  editingFeedPostId = post.id;
+  feedCaptionInput.value = post.caption;
+  feedImageInput.value = "";
+  feedUploadButton.textContent = "Save";
+  closePostActionsDialog();
+  feedCaptionInput.focus();
+}
+
+async function deleteActiveFeedPost() {
+  const post = feedPosts.find((item) => item.id === activeFeedPostId);
+  if (!post) return;
+
+  deletePostButton.disabled = true;
+  try {
+    await deleteDoc(doc(db, "users", currentUser.uid, "feed", post.id));
+    if (post.imagePath) {
+      await withTimeout(
+        deleteObject(storageRef(storage, post.imagePath)),
+        feedUploadTimeoutMs,
+        "Post was deleted, but the picture cleanup took too long."
+      ).catch((error) => console.warn("Feed picture cleanup failed", error));
+    }
+    feedPosts = feedPosts.filter((item) => item.id !== post.id);
+    writeCachedUserData(currentUser.uid);
+    closePostActionsDialog();
+    renderFeed();
+  } catch (error) {
+    showFeedStatus("Could not delete post. Please try again.", true);
+    console.error(error);
+  } finally {
+    deletePostButton.disabled = false;
+  }
 }
 
 function showFeedStatus(message, isError) {
@@ -1047,7 +1149,7 @@ function lockPageScroll() {
 }
 
 function unlockPageScrollIfNoDialog() {
-  if (!editDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden) return;
+  if (!editDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden || !postActionsDialog.hidden) return;
 
   document.body.classList.remove("is-dialog-open");
   document.body.style.position = "";
@@ -1665,6 +1767,7 @@ function parseFeedPost(id, entry) {
     imagePath: typeof entry?.imagePath === "string" ? entry.imagePath : "",
     imageUrl: typeof entry?.imageUrl === "string" ? entry.imageUrl : "",
     createdAt: Number.isNaN(new Date(createdAt).getTime()) ? new Date(0).toISOString() : createdAt,
+    updatedAt: typeof entry?.updatedAt === "string" ? entry.updatedAt : "",
   };
 }
 
@@ -1864,6 +1967,17 @@ function formatFeedDate(value) {
 
 function sanitizeFileName(fileName) {
   return fileName.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "") || "upload.jpg";
+}
+
+function withTimeout(promise, milliseconds, message) {
+  let timeoutId = 0;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), milliseconds);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    window.clearTimeout(timeoutId);
+  });
 }
 
 function parseInputDate(value) {
