@@ -614,14 +614,21 @@ h3 {
   color: var(--ink);
   font-weight: 800;
   line-height: 1.3;
+  white-space: pre-wrap;
 }
 
-.feed-post time {
-  display: block;
-  padding: 0 12px 10px;
+.feed-info {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  margin: 4px 12px 10px auto;
+  place-items: center;
+  border: 1px solid #5f5b55;
+  border-radius: 999px;
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .day {

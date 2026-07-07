@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v169";
+const APP_VERSION = "v170";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -878,19 +878,21 @@ function renderFeed() {
   feedPosts.forEach((post) => {
     const article = document.createElement("article");
     const caption = document.createElement("p");
-    const date = document.createElement("time");
+    const info = document.createElement("span");
 
     article.className = "feed-post";
     caption.textContent = post.caption || "No caption";
-    date.dateTime = post.createdAt;
-    date.textContent = formatFeedDate(post.createdAt);
+    info.className = "feed-info";
+    info.title = `Posted ${formatFeedDate(post.createdAt)}`;
+    info.setAttribute("aria-label", `Posted ${formatFeedDate(post.createdAt)}`);
+    info.textContent = "i";
     if (post.imageUrl) {
       const image = document.createElement("img");
       image.src = post.imageUrl;
       image.alt = post.caption || "Uploaded picture";
       article.append(image);
     }
-    article.append(caption, date);
+    article.append(caption, info);
     feedList.append(article);
   });
 }
