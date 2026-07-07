@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v164";
+const APP_VERSION = "v165";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -32,6 +32,7 @@ const defaultSchedule = {
   hours: 7,
   minutes: 0,
 };
+const scheduleWindowMs = 10 * 60 * 1000;
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   month: "long",
@@ -812,7 +813,7 @@ function renderCountdown() {
   const now = new Date();
   const todayDose = getTodayDoseTime(now);
   const todayLog = logs[toKey(today)];
-  const missedToday = todayDose && now > todayDose && !todayLog;
+  const missedToday = todayDose && now > getScheduleWindowEnd(todayDose) && !todayLog;
   const offScheduleToday = todayLog && isOutsideScheduleWindow(todayLog, today);
   const nextDose = getNextDoseTime(now);
   const remainingMs = nextDose ? nextDose - now : 0;
@@ -1831,7 +1832,7 @@ function isOutsideScheduleWindow(loggedAt, date) {
   const scheduledAt = getScheduledDoseTime(date);
   if (!scheduledAt) return false;
 
-  return Math.abs(takenAt - scheduledAt) > 10 * 60 * 1000;
+  return Math.abs(takenAt - scheduledAt) > scheduleWindowMs;
 }
 
 function getCalendarTimingClass(loggedAt, date) {
@@ -1858,15 +1859,20 @@ function isMissedDate(date, loggedAt) {
   if (loggedAt) return false;
   if (isEndedDate(date)) return false;
 
+  const todayDose = getTodayDoseTime(new Date());
   return date < today
-    || (toKey(date) === toKey(today) && new Date() > getTodayDoseTime(new Date()));
+    || (toKey(date) === toKey(today) && todayDose && new Date() > getScheduleWindowEnd(todayDose));
 }
 
 function isUpcomingDate(date) {
   if (isFutureDate(date)) return true;
 
   const scheduledAt = getScheduledDoseTime(date);
-  return toKey(date) === toKey(today) && scheduledAt && new Date() <= scheduledAt;
+  return toKey(date) === toKey(today) && scheduledAt && new Date() <= getScheduleWindowEnd(scheduledAt);
+}
+
+function getScheduleWindowEnd(scheduledAt) {
+  return new Date(scheduledAt.getTime() + scheduleWindowMs);
 }
 
 function isFutureDate(date) {
