@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v165";
+const APP_VERSION = "v168";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -17,16 +17,20 @@ const firebaseConfig = {
 let firebaseApp = null;
 let auth = null;
 let db = null;
+let storage = null;
 let googleProvider = null;
 let GoogleAuthProvider = null;
 let collection = null;
 let deleteDoc = null;
 let doc = null;
+let getDownloadURL = null;
 let getDoc = null;
 let getDocs = null;
 let onAuthStateChanged = null;
+let storageRef = null;
 let setDoc = null;
 let signInWithPopup = null;
+let uploadBytes = null;
 let writeBatch = null;
 const defaultSchedule = {
   hours: 7,
@@ -48,6 +52,7 @@ let viewedMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDate = today;
 let currentUser = null;
 let logs = {};
+let feedPosts = [];
 let settings = getDefaultSettings();
 let isDataReady = false;
 let countdownTimer = 0;
@@ -76,6 +81,7 @@ const markTakenButton = document.querySelector("#markTakenButton");
 const editDialog = document.querySelector("#editDialog");
 const editConfirmPanel = document.querySelector("#editConfirmPanel");
 const editForm = document.querySelector("#editForm");
+const backEditDoseButton = document.querySelector("#backEditDoseButton");
 const editNoButton = document.querySelector("#editNoButton");
 const editYesButton = document.querySelector("#editYesButton");
 const editCancelButton = document.querySelector("#editCancelButton");
@@ -98,6 +104,15 @@ const refillPillsButton = document.querySelector("#refillPillsButton");
 const refillPillsWheelWrap = document.querySelector("#refillPillsWheelWrap");
 const refillPillsWheel = document.querySelector("#refillPillsWheel");
 const openSettingsButton = document.querySelector("#openSettingsButton");
+const openFeedButton = document.querySelector("#openFeedButton");
+const feedDialog = document.querySelector("#feedDialog");
+const feedForm = document.querySelector("#feedForm");
+const backFeedButton = document.querySelector("#backFeedButton");
+const feedImageInput = document.querySelector("#feedImageInput");
+const feedCaptionInput = document.querySelector("#feedCaptionInput");
+const feedStatus = document.querySelector("#feedStatus");
+const feedUploadButton = document.querySelector("#feedUploadButton");
+const feedList = document.querySelector("#feedList");
 const scheduleDialog = document.querySelector("#scheduleDialog");
 const scheduleChoicePanel = document.querySelector("#scheduleChoicePanel");
 const openSettingsNotesButton = document.querySelector("#openSettingsNotesButton");
@@ -106,6 +121,7 @@ const settingsNotesPreview = document.querySelector("#settingsNotesPreview");
 const settingsNotesEditField = document.querySelector("#settingsNotesEditField");
 const settingsNotesInput = document.querySelector("#settingsNotesInput");
 const settingsNotesActions = document.querySelector("#settingsNotesActions");
+const backSettingsNotesButton = document.querySelector("#backSettingsNotesButton");
 const editSettingsNotesButton = document.querySelector("#editSettingsNotesButton");
 const cancelSettingsNotesButton = document.querySelector("#cancelSettingsNotesButton");
 const scheduleForm = document.querySelector("#scheduleForm");
@@ -167,6 +183,7 @@ calendarGrid.addEventListener("wheel", handleCalendarWheel, { passive: false });
 
 markTakenButton.addEventListener("click", handleMarkButtonClick);
 editDialog.addEventListener("click", closeEditDialogOnBackdrop);
+backEditDoseButton.addEventListener("click", () => closeEditDialog(false));
 editNoButton.addEventListener("click", () => closeEditDialog(false));
 editYesButton.addEventListener("click", showEditForm);
 editCancelButton.addEventListener("click", closeEditDialog);
@@ -179,9 +196,14 @@ pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 openSettingsButton.addEventListener("click", openScheduleDialog);
+openFeedButton.addEventListener("click", openFeedDialog);
+feedDialog.addEventListener("click", closeFeedDialogOnBackdrop);
+backFeedButton.addEventListener("click", closeFeedDialog);
+feedForm.addEventListener("submit", uploadFeedPost);
 scheduleDialog.addEventListener("click", closeScheduleDialogOnBackdrop);
 openSettingsNotesButton.addEventListener("click", openSettingsNotesForm);
 settingsNotesForm.addEventListener("submit", saveSettingsNotes);
+backSettingsNotesButton.addEventListener("click", closeSettingsNotesForm);
 editSettingsNotesButton.addEventListener("click", enableSettingsNotesEditing);
 cancelSettingsNotesButton.addEventListener("click", closeSettingsNotesForm);
 cancelScheduleButton.addEventListener("click", closeScheduleDialog);
@@ -206,15 +228,17 @@ async function startFirebase() {
   showAuthGate("Loading", "Checking your sign-in...", false);
 
   try {
-    const [firebaseAppModule, firebaseAuthModule, firebaseFirestoreModule] = await Promise.all([
+    const [firebaseAppModule, firebaseAuthModule, firebaseFirestoreModule, firebaseStorageModule] = await Promise.all([
       import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
       import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js"),
       import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js"),
     ]);
 
     firebaseApp = firebaseAppModule.initializeApp(firebaseConfig);
     auth = firebaseAuthModule.getAuth(firebaseApp);
     db = firebaseFirestoreModule.getFirestore(firebaseApp);
+    storage = firebaseStorageModule.getStorage(firebaseApp);
     GoogleAuthProvider = firebaseAuthModule.GoogleAuthProvider;
     googleProvider = new GoogleAuthProvider();
     onAuthStateChanged = firebaseAuthModule.onAuthStateChanged;
@@ -226,6 +250,9 @@ async function startFirebase() {
     getDocs = firebaseFirestoreModule.getDocs;
     setDoc = firebaseFirestoreModule.setDoc;
     writeBatch = firebaseFirestoreModule.writeBatch;
+    getDownloadURL = firebaseStorageModule.getDownloadURL;
+    storageRef = firebaseStorageModule.ref;
+    uploadBytes = firebaseStorageModule.uploadBytes;
 
     console.log("registering auth listener");
     onAuthStateChanged(auth, handleAuthStateChanged, handleAuthError);
@@ -382,6 +409,7 @@ function render() {
   renderCalendar();
   renderDetails();
   renderPillsRemaining();
+  renderFeed();
   renderCountdown();
 }
 
@@ -768,6 +796,108 @@ function closeScheduleDialogOnBackdrop(event) {
   }
 }
 
+function openFeedDialog() {
+  lockPageScroll();
+  hideFeedStatus();
+  feedForm.reset();
+  renderFeed();
+  feedDialog.hidden = false;
+}
+
+function closeFeedDialog() {
+  feedDialog.hidden = true;
+  unlockPageScrollIfNoDialog();
+}
+
+function closeFeedDialogOnBackdrop(event) {
+  if (event.target === feedDialog) {
+    closeFeedDialog();
+  }
+}
+
+async function uploadFeedPost(event) {
+  event.preventDefault();
+  hideFeedStatus();
+
+  const imageFile = feedImageInput.files?.[0];
+  const caption = feedCaptionInput.value.trim();
+  if (!imageFile) {
+    showFeedStatus("Choose a picture first.", true);
+    return;
+  }
+
+  feedUploadButton.disabled = true;
+  showFeedStatus("Uploading...", false);
+
+  try {
+    const id = `${Date.now()}`;
+    const imagePath = `users/${currentUser.uid}/feed/${id}-${sanitizeFileName(imageFile.name)}`;
+    const imageRef = storageRef(storage, imagePath);
+    await uploadBytes(imageRef, imageFile, {
+      contentType: imageFile.type || "image/jpeg",
+    });
+    const imageUrl = await getDownloadURL(imageRef);
+    const post = {
+      id,
+      caption,
+      imagePath,
+      imageUrl,
+      createdAt: new Date().toISOString(),
+    };
+    feedPosts = [post, ...feedPosts];
+    await saveFeedPostToFirestore(post);
+    feedForm.reset();
+    showFeedStatus("Uploaded.", false);
+    renderFeed();
+  } catch (error) {
+    showFeedStatus("Could not upload. Check Firebase Storage rules and try again.", true);
+    console.error(error);
+  } finally {
+    feedUploadButton.disabled = false;
+  }
+}
+
+function renderFeed() {
+  if (!feedList) return;
+
+  feedList.replaceChildren();
+  if (!feedPosts.length) {
+    const empty = document.createElement("p");
+    empty.className = "feed-empty";
+    empty.textContent = "No uploads yet";
+    feedList.append(empty);
+    return;
+  }
+
+  feedPosts.forEach((post) => {
+    const article = document.createElement("article");
+    const image = document.createElement("img");
+    const caption = document.createElement("p");
+    const date = document.createElement("time");
+
+    article.className = "feed-post";
+    image.src = post.imageUrl;
+    image.alt = post.caption || "Uploaded picture";
+    caption.textContent = post.caption || "No caption";
+    date.dateTime = post.createdAt;
+    date.textContent = formatFeedDate(post.createdAt);
+    article.append(image, caption, date);
+    feedList.append(article);
+  });
+}
+
+function showFeedStatus(message, isError) {
+  feedStatus.hidden = false;
+  feedStatus.textContent = message;
+  feedStatus.classList.toggle("is-error", isError);
+}
+
+function hideFeedStatus() {
+  feedStatus.hidden = true;
+  feedStatus.textContent = "";
+  feedStatus.classList.remove("is-error");
+}
+
 async function saveSchedule(event) {
   event.preventDefault();
   hideAppError();
@@ -906,7 +1036,7 @@ function lockPageScroll() {
 }
 
 function unlockPageScrollIfNoDialog() {
-  if (!editDialog.hidden || !scheduleDialog.hidden) return;
+  if (!editDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden) return;
 
   document.body.classList.remove("is-dialog-open");
   document.body.style.position = "";
@@ -1420,9 +1550,10 @@ function getDayLabel(date) {
 }
 
 async function loadUserData(uid) {
-  const [settingsSnapshot, logsSnapshot] = await Promise.all([
+  const [settingsSnapshot, logsSnapshot, feedSnapshot] = await Promise.all([
     getDoc(doc(db, "users", uid, "settings", "main")),
     getDocs(collection(db, "users", uid, "logs")),
+    getDocs(collection(db, "users", uid, "feed")),
   ]);
 
   settings = parseSettings(settingsSnapshot.exists() ? settingsSnapshot.data() : {});
@@ -1431,6 +1562,12 @@ async function loadUserData(uid) {
     const entry = parseLogEntry(logSnapshot.data());
     if (entry.takenAt) logs[logSnapshot.id] = entry;
   });
+  feedPosts = [];
+  feedSnapshot.forEach((postSnapshot) => {
+    const post = parseFeedPost(postSnapshot.id, postSnapshot.data());
+    if (post.imageUrl) feedPosts.push(post);
+  });
+  feedPosts.sort((first, second) => second.createdAt.localeCompare(first.createdAt));
 }
 
 function getCacheKey(uid) {
@@ -1444,9 +1581,14 @@ function loadCachedUserData(uid) {
 
     settings = parseSettings(cachedData.settings || {});
     logs = {};
+    feedPosts = [];
     Object.entries(cachedData.logs || {}).forEach(([key, entry]) => {
       const parsedEntry = parseLogEntry(entry);
       if (parsedEntry.takenAt) logs[key] = parsedEntry;
+    });
+    (cachedData.feedPosts || []).forEach((entry) => {
+      const parsedPost = parseFeedPost(entry.id, entry);
+      if (parsedPost.imageUrl) feedPosts.push(parsedPost);
     });
     return true;
   } catch {
@@ -1459,6 +1601,7 @@ function writeCachedUserData(uid) {
     localStorage.setItem(getCacheKey(uid), JSON.stringify({
       settings,
       logs,
+      feedPosts,
       cachedAt: new Date().toISOString(),
     }));
   } catch {
@@ -1502,6 +1645,18 @@ function parseLogEntry(entry) {
   };
 }
 
+function parseFeedPost(id, entry) {
+  const createdAt = typeof entry?.createdAt === "string" ? entry.createdAt : "";
+
+  return {
+    id: typeof entry?.id === "string" ? entry.id : id,
+    caption: typeof entry?.caption === "string" ? entry.caption : "",
+    imagePath: typeof entry?.imagePath === "string" ? entry.imagePath : "",
+    imageUrl: typeof entry?.imageUrl === "string" ? entry.imageUrl : "",
+    createdAt: Number.isNaN(new Date(createdAt).getTime()) ? new Date(0).toISOString() : createdAt,
+  };
+}
+
 async function saveSettingsToFirestore() {
   requireSignedInUser();
   await setDoc(doc(db, "users", currentUser.uid, "settings", "main"), settings);
@@ -1511,6 +1666,12 @@ async function saveSettingsToFirestore() {
 async function saveLogToFirestore(key, entry) {
   requireSignedInUser();
   await setDoc(doc(db, "users", currentUser.uid, "logs", key), entry);
+  writeCachedUserData(currentUser.uid);
+}
+
+async function saveFeedPostToFirestore(post) {
+  requireSignedInUser();
+  await setDoc(doc(db, "users", currentUser.uid, "feed", post.id), post);
   writeCachedUserData(currentUser.uid);
 }
 
@@ -1675,6 +1836,23 @@ function formatCompactInputDate(date) {
   const day = String(date.getDate()).padStart(2, "0");
   const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][date.getMonth()];
   return `${day}${month}${date.getFullYear()}`;
+}
+
+function formatFeedDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function sanitizeFileName(fileName) {
+  return fileName.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "") || "upload.jpg";
 }
 
 function parseInputDate(value) {
