@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v243";
+const APP_VERSION = "v244";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -272,8 +272,8 @@ pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 savePillsButton.addEventListener("click", saveEditedLogEntry);
 editHadSexButton.addEventListener("click", openEditEncountersWindow);
 editHivTestButton.addEventListener("click", openEditHivSection);
-editHivLocationSelect.addEventListener("change", updateEditHivLocation);
-saveHivButton.addEventListener("click", saveEditedLogEntry);
+editHivLocationSelect.addEventListener("change", saveEditHivTest);
+saveHivButton.addEventListener("click", saveEditHivTest);
 refillToggleButton.addEventListener("click", openEditRefillSection);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 saveRefillButton.addEventListener("click", saveEditedLogEntry);
@@ -2014,20 +2014,19 @@ function renderEditSexControls() {
 
 function openEditHivSection() {
   activeEditSection = "hiv";
-  if (!editHivTest) {
-    editHivTest = true;
-    editNotesInput.value = appendHivTestNote(editNotesInput.value, editHivLocation);
-  }
+  editHivTest = true;
+  editNotesInput.value = appendHivTestNote(editNotesInput.value, editHivLocation);
   renderEditSection();
   renderEditHivTestControls();
 }
 
-function updateEditHivLocation() {
+async function saveEditHivTest(event) {
+  event?.preventDefault();
   editHivLocation = normalizeHivLocation(editHivLocationSelect.value);
-  if (editHivTest) {
-    editNotesInput.value = appendHivTestNote(removeHivTestNote(editNotesInput.value), editHivLocation);
-  }
+  editHivTest = true;
+  editNotesInput.value = appendHivTestNote(removeHivTestNote(editNotesInput.value), editHivLocation);
   renderEditHivTestControls();
+  await saveEditedLogEntry();
 }
 
 function renderEditHivTestControls() {
@@ -2860,7 +2859,10 @@ function hasSexLogged(entry) {
 }
 
 function hasHivTestLogged(entry) {
-  return typeof entry !== "string" && entry?.hivTest === true;
+  return typeof entry !== "string" && (
+    entry?.hivTest === true ||
+    /^HIV Negative at .+\.?$/im.test(getLogNotes(entry))
+  );
 }
 
 function getLogHivLocation(entry) {
