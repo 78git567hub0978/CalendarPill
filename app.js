@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v189";
+const APP_VERSION = "v194";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -37,6 +37,11 @@ const defaultSchedule = {
   hours: 7,
   minutes: 0,
 };
+const hivTestLocations = [
+  "LoveYourself Mandaluyong",
+  "LoveYourself Pasay",
+  "SAIL Calamba",
+];
 const scheduleWindowMs = 10 * 60 * 1000;
 const feedUploadTimeoutMs = 30000;
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -80,6 +85,7 @@ const selectedTitle = document.querySelector("#selectedTitle");
 const selectedMeta = document.querySelector("#selectedMeta");
 const markActionMessage = document.querySelector("#markActionMessage");
 const markTakenButton = document.querySelector("#markTakenButton");
+const editDoseIconButton = document.querySelector("#editDoseIconButton");
 const editDialog = document.querySelector("#editDialog");
 const editConfirmPanel = document.querySelector("#editConfirmPanel");
 const editForm = document.querySelector("#editForm");
@@ -105,6 +111,9 @@ const pillsTakenWheelWrap = document.querySelector("#pillsTakenWheelWrap");
 const pillsTakenWheel = document.querySelector("#pillsTakenWheel");
 const editDidNotHaveSexButton = document.querySelector("#editDidNotHaveSexButton");
 const editHadSexButton = document.querySelector("#editHadSexButton");
+const editHivTestButton = document.querySelector("#editHivTestButton");
+const editHivTestField = document.querySelector("#editHivTestField");
+const editHivLocationSelect = document.querySelector("#editHivLocationSelect");
 const refillToggleButton = document.querySelector("#refillToggleButton");
 const refillPillsField = document.querySelector("#refillPillsField");
 const refillPillsButton = document.querySelector("#refillPillsButton");
@@ -162,6 +171,8 @@ let isEditPillsOpen = false;
 let isEditNotesOpen = false;
 let isPillsTakenWheelOpen = false;
 let editSexStatus = "";
+let editHivTest = false;
+let editHivLocation = hivTestLocations[0];
 let editRefillStart = false;
 let editStartingPills = 30;
 let isRefillPillsWheelOpen = false;
@@ -196,6 +207,7 @@ calendarGrid.addEventListener("touchend", handleCalendarTouchEnd);
 calendarGrid.addEventListener("wheel", handleCalendarWheel, { passive: false });
 
 markTakenButton.addEventListener("click", handleMarkButtonClick);
+editDoseIconButton.addEventListener("click", openSelectedDoseEditor);
 editDialog.addEventListener("click", closeEditDialogOnBackdrop);
 backEditDoseButton.addEventListener("click", () => closeEditDialog(false));
 editNoButton.addEventListener("click", () => closeEditDialog(false));
@@ -211,6 +223,8 @@ editNotesToggleButton.addEventListener("click", toggleEditNotesField);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 editDidNotHaveSexButton.addEventListener("click", () => setEditSexStatus("did-not"));
 editHadSexButton.addEventListener("click", () => setEditSexStatus("had"));
+editHivTestButton.addEventListener("click", toggleEditHivTest);
+editHivLocationSelect.addEventListener("change", updateEditHivLocation);
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 openSettingsButton.addEventListener("click", openScheduleDialog);
@@ -470,6 +484,7 @@ function renderCalendar() {
     if (!ended && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
     if (isRefillStart(logs[key])) button.classList.add("is-refill-start");
     if (hasSexLogged(logs[key])) button.classList.add("has-sex");
+    if (hasHivTestLogged(logs[key])) button.classList.add("has-hiv-test");
     if (logs[key] && getLogNotes(logs[key]).trim()) button.classList.add("has-notes");
 
     time.dateTime = key;
@@ -1159,6 +1174,22 @@ async function handleMarkButtonClick() {
   openEditForm(key);
 }
 
+function openSelectedDoseEditor() {
+  const key = toKey(selectedDate);
+
+  if (isFutureDate(selectedDate)) {
+    showMarkActionMessage("Cannot edit a future date.");
+    return;
+  }
+
+  if (isEndedDate(selectedDate)) {
+    showAppError("Cannot edit this date because PreP is stopped.");
+    return;
+  }
+
+  openEditForm(key);
+}
+
 function openEditForm(key) {
   lockPageScroll();
   editingKey = key;
@@ -1225,6 +1256,8 @@ function fillEditForm(key) {
   isEditNotesOpen = false;
   isPillsTakenWheelOpen = false;
   editSexStatus = getLogSexStatus(entry);
+  editHivTest = hasHivTestLogged(entry);
+  editHivLocation = getLogHivLocation(entry);
   editRefillStart = isRefillStart(entry);
   editStartingPills = getLogStartingPills(entry) || 30;
   isRefillPillsWheelOpen = false;
@@ -1235,6 +1268,7 @@ function fillEditForm(key) {
   renderEditPillsControls();
   renderPillsTakenControls();
   renderEditSexControls();
+  renderEditHivTestControls();
   renderRefillControls();
 }
 
@@ -1256,16 +1290,18 @@ async function saveEditedLogEntry(event) {
   updatedDate.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
-  const editedNotes = editSexStatus === "had"
-    ? appendHadSexNote(editNotesInput.value.trim())
-    : editNotesInput.value.trim();
+  let editedNotes = editNotesInput.value.trim();
+  if (editSexStatus === "had") editedNotes = appendHadSexNote(editedNotes);
+  if (editHivTest) editedNotes = appendHivTestNote(editedNotes, editHivLocation);
   const entry = createLogEntry(
     updatedDate,
     editedNotes,
     editRefillStart,
     editStartingPills,
     editPillsTaken,
-    editSexStatus
+    editSexStatus,
+    editHivTest,
+    editHivLocation
   );
 
   if (editingKey !== toKey(updatedDate)) {
@@ -1377,6 +1413,28 @@ function renderEditSexControls() {
   editHadSexButton.classList.toggle("is-active", editSexStatus === "had");
 }
 
+function toggleEditHivTest() {
+  editHivTest = !editHivTest;
+  editNotesInput.value = editHivTest
+    ? appendHivTestNote(editNotesInput.value, editHivLocation)
+    : removeHivTestNote(editNotesInput.value);
+  renderEditHivTestControls();
+}
+
+function updateEditHivLocation() {
+  editHivLocation = normalizeHivLocation(editHivLocationSelect.value);
+  if (editHivTest) {
+    editNotesInput.value = appendHivTestNote(removeHivTestNote(editNotesInput.value), editHivLocation);
+  }
+  renderEditHivTestControls();
+}
+
+function renderEditHivTestControls() {
+  editHivTestButton.classList.toggle("is-active", editHivTest);
+  editHivTestField.hidden = !editHivTest;
+  editHivLocationSelect.value = editHivLocation;
+}
+
 function toggleEditNotesField() {
   isEditNotesOpen = !isEditNotesOpen;
   renderEditNotesControls();
@@ -1424,7 +1482,7 @@ function renderRefillControls() {
     ? "This is A New Bottle"
     : "Mark this as New Bottle";
   refillPillsField.hidden = !editRefillStart;
-  refillPillsButton.textContent = `Start pills: ${editStartingPills}`;
+  refillPillsButton.textContent = `Number of pills: ${editStartingPills}`;
   refillPillsWheelWrap.hidden = !isRefillPillsWheelOpen;
 
   if (!editRefillStart || !isRefillPillsWheelOpen) return;
@@ -1435,7 +1493,7 @@ function renderRefillControls() {
     editStartingPills,
     (value) => {
       editStartingPills = value;
-      refillPillsButton.textContent = `Start pills: ${value}`;
+      refillPillsButton.textContent = `Number of pills: ${value}`;
     },
     {
       allowCustom: true,
@@ -1818,6 +1876,8 @@ function parseLogEntry(entry) {
   const takenAt = typeof entry?.takenAt === "string" ? entry.takenAt : "";
   const refillStart = entry?.refillStart === true;
   const sexStatus = entry?.sexStatus === "had" || entry?.sexStatus === "did-not" ? entry.sexStatus : "";
+  const hivTest = entry?.hivTest === true;
+  const hivLocation = normalizeHivLocation(entry?.hivLocation);
 
   return {
     takenAt: Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt,
@@ -1826,6 +1886,8 @@ function parseLogEntry(entry) {
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(entry?.startingPills) : 0,
     sexStatus,
+    hivTest,
+    hivLocation: hivTest ? hivLocation : "",
   };
 }
 
@@ -1925,7 +1987,16 @@ function schedulesMatch(first, second) {
   return first.hours === second.hours && first.minutes === second.minutes;
 }
 
-function createLogEntry(takenAt, notes, refillStart = false, startingPills = 0, pillsTaken = 1, sexStatus = "") {
+function createLogEntry(
+  takenAt,
+  notes,
+  refillStart = false,
+  startingPills = 0,
+  pillsTaken = 1,
+  sexStatus = "",
+  hivTest = false,
+  hivLocation = ""
+) {
   return {
     takenAt: takenAt.toISOString(),
     notes,
@@ -1933,6 +2004,8 @@ function createLogEntry(takenAt, notes, refillStart = false, startingPills = 0, 
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(startingPills) : 0,
     sexStatus: sexStatus === "had" || sexStatus === "did-not" ? sexStatus : "",
+    hivTest: hivTest === true,
+    hivLocation: hivTest === true ? normalizeHivLocation(hivLocation) : "",
   };
 }
 
@@ -1966,8 +2039,43 @@ function appendHadSexNote(notes) {
   return `${trimmedNotes}\n${note}`;
 }
 
+function appendHivTestNote(notes, location) {
+  const trimmedNotes = removeHivTestNote(notes);
+  const hivNote = `HIV Negative.\nLocation: ${normalizeHivLocation(location)}`;
+  return trimmedNotes ? `${trimmedNotes}\n${hivNote}` : hivNote;
+}
+
+function removeHivTestNote(notes) {
+  const lines = notes.split(/\r?\n/);
+  const keptLines = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (/^HIV Negative\.?$/i.test(lines[index].trim())) {
+      if (/^Location:\s*/i.test(lines[index + 1]?.trim() || "")) index += 1;
+      continue;
+    }
+    keptLines.push(lines[index]);
+  }
+
+  return keptLines.join("\n").trim();
+}
+
 function hasSexLogged(entry) {
   return getLogSexStatus(entry) === "had";
+}
+
+function hasHivTestLogged(entry) {
+  return typeof entry !== "string" && entry?.hivTest === true;
+}
+
+function getLogHivLocation(entry) {
+  return typeof entry !== "string" && entry?.hivTest === true
+    ? normalizeHivLocation(entry?.hivLocation)
+    : hivTestLocations[0];
+}
+
+function normalizeHivLocation(location) {
+  return hivTestLocations.includes(location) ? location : hivTestLocations[0];
 }
 
 function isRefillStart(entry) {

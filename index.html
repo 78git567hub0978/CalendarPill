@@ -59,6 +59,9 @@
       </section>
 
       <section class="detail-panel" aria-label="Selected day details">
+        <button id="editDoseIconButton" class="detail-edit-button" type="button" aria-label="Edit dose">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
         <div>
           <h3 id="selectedTitle"></h3>
           <p id="selectedMeta"></p>
@@ -77,6 +80,7 @@
           <li><span class="legend-dot is-future"></span>Upcoming</li>
           <li><span class="legend-dot is-schedule-change"></span>Schedule change</li>
           <li><span class="legend-dot is-refill-start"></span>New Bottle</li>
+          <li><span class="legend-dot is-encounter"></span>Encounter</li>
           <li><span class="legend-dot is-ended"></span>PreP stopped</li>
         </ul>
         <div class="legend-tools">
@@ -111,14 +115,14 @@
           <button id="refillToggleButton" class="refill-toggle" type="button">Mark this as New Bottle</button>
 
           <label class="edit-field refill-pills-field" id="refillPillsField" hidden>
-            <span>Start pills</span>
+            <span>Number of pills</span>
             <button id="refillPillsButton" class="pill-count-button" type="button">30</button>
-            <div class="single-wheel-picker refill-pills-wheel" id="refillPillsWheelWrap" aria-label="Choose starting pills" hidden>
-              <div class="wheel-picker" id="refillPillsWheel" aria-label="Choose starting pills"></div>
+            <div class="single-wheel-picker refill-pills-wheel" id="refillPillsWheelWrap" aria-label="Choose number of pills" hidden>
+              <div class="wheel-picker" id="refillPillsWheel" aria-label="Choose number of pills"></div>
             </div>
           </label>
 
-          <button id="editTimeToggleButton" class="edit-option-button" type="button">Edit time</button>
+          <button id="editTimeToggleButton" class="edit-option-button" type="button">Edit time taken</button>
 
           <label class="edit-field" id="editTimeField" hidden>
             <span>Time</span>
@@ -145,6 +149,17 @@
               <button id="editHadSexButton" class="edit-sex-button" type="button">Had encounter</button>
             </div>
           </div>
+
+          <button id="editHivTestButton" class="edit-option-button" type="button">HIV Test</button>
+
+          <label class="edit-field" id="editHivTestField" hidden>
+            <span>Location</span>
+            <select id="editHivLocationSelect">
+              <option value="LoveYourself Mandaluyong">LoveYourself Mandaluyong</option>
+              <option value="LoveYourself Pasay">LoveYourself Pasay</option>
+              <option value="SAIL Calamba">SAIL Calamba</option>
+            </select>
+          </label>
 
           <button id="editNotesToggleButton" class="edit-option-button" type="button">Notes</button>
 

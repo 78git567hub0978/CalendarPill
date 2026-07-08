@@ -509,6 +509,10 @@ h3 {
   background: var(--future);
 }
 
+.legend-dot.is-encounter {
+  background: #ffd84d;
+}
+
 .legend-dot.is-schedule-change {
   border-radius: 2px;
   background: var(--ink);
@@ -702,8 +706,20 @@ h3 {
   height: 20px;
   transform: translate(-50%, -50%);
   border-radius: 999px;
-  background: var(--ink);
+  background: #ffd84d;
   pointer-events: none;
+}
+
+.day.has-hiv-test .day-number::after {
+  content: "♥";
+  position: absolute;
+  right: -9px;
+  top: -10px;
+  z-index: 3;
+  color: #050505;
+  font-size: 0.55rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .note-marker {
@@ -903,10 +919,37 @@ h3 {
 }
 
 .detail-panel {
+  position: relative;
   justify-content: space-between;
   gap: 12px;
   margin-top: 14px;
-  padding: 14px;
+  padding: 14px 44px 14px 14px;
+}
+
+.detail-edit-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: var(--muted);
+  background: transparent;
+}
+
+.detail-edit-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.detail-edit-button:active {
+  color: var(--ink);
 }
 
 .detail-panel > div:first-child {
@@ -1303,7 +1346,8 @@ h3 {
 }
 
 .edit-field input,
-.edit-field textarea {
+.edit-field textarea,
+.edit-field select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
