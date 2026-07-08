@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v231";
+const APP_VERSION = "v233";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -1487,34 +1487,35 @@ function appendEncounterEditableRows(detailList, details, encounterIndex) {
 }
 
 function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
-  const control = rowConfig.type === "select"
+  const control = isNote
+    ? document.createElement("input")
+    : rowConfig.type === "select"
     ? document.createElement("select")
     : document.createElement(rowConfig.type === "textarea" ? "textarea" : "input");
   const value = isNote ? rowConfig.note : rowConfig.value;
 
   control.className = isNote ? "encounter-draft-note" : "encounter-draft-value";
-  if (rowConfig.type === "number") {
+  if (isNote) {
+    control.type = "text";
+    control.placeholder = "Note";
+  } else if (rowConfig.type === "number") {
     control.type = "number";
     control.readOnly = true;
   } else if (rowConfig.type !== "select" && rowConfig.type !== "textarea") {
     control.type = "text";
   }
-  if (rowConfig.type === "textarea") control.rows = 4;
-  if (rowConfig.key === "location") control.required = true;
-
-  if (rowConfig.type === "select") {
+  if (!isNote && rowConfig.type === "textarea") control.rows = 4;
+  if (!isNote && rowConfig.type === "select") {
     rowConfig.choices.forEach((choice) => {
       const option = document.createElement("option");
       option.value = choice;
       option.textContent = choice;
       control.append(option);
     });
-  } else if (isNote) {
-    control.placeholder = "Note";
   }
 
   control.value = value;
-  control.addEventListener(rowConfig.type === "select" ? "change" : "input", () => {
+  control.addEventListener(!isNote && rowConfig.type === "select" ? "change" : "input", () => {
     updateEncounterDialogDetail(encounterIndex, rowConfig.key, control.value, isNote);
   });
 
