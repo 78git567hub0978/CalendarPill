@@ -1234,12 +1234,17 @@ textarea.encounter-draft-value {
 
 .encounter-detail-list {
   display: grid;
-  gap: 14px;
+  gap: 34px;
 }
 
 .encounter-detail-group {
   display: grid;
   gap: 8px;
+}
+
+.encounter-detail-group + .encounter-detail-group {
+  padding-top: 22px;
+  border-top: 1px solid rgba(247, 244, 236, 0.12);
 }
 
 .encounter-detail-group h4 {
