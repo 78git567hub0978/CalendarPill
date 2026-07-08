@@ -522,6 +522,15 @@ h3 {
   line-height: 1;
 }
 
+.legend-dot.is-hiv-test {
+  display: grid;
+  place-items: center;
+  color: #ff2d2d;
+  font-size: 0.88rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .legend-dot.is-schedule-change {
   border-radius: 2px;
   background: var(--ink);
