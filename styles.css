@@ -698,7 +698,8 @@ h3 {
   inset: 5px;
   z-index: 1;
   border-radius: 999px;
-  background: #ff2f2f;
+  border: 2px solid #ff2f2f;
+  background: var(--ink);
   pointer-events: none;
 }
 
