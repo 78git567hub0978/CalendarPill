@@ -129,6 +129,7 @@
             <div class="single-wheel-picker refill-pills-wheel" id="refillPillsWheelWrap" aria-label="Choose number of pills" hidden>
               <div class="wheel-picker" id="refillPillsWheel" aria-label="Choose number of pills"></div>
             </div>
+            <button id="saveRefillButton" class="inline-save-action" type="button">Save</button>
           </label>
 
           <button id="editTimeToggleButton" class="edit-option-button" type="button">Edit time taken</button>
@@ -139,6 +140,7 @@
               <div class="wheel-picker" id="editHourWheel" aria-label="Choose hour"></div>
               <div class="wheel-picker" id="editMinuteWheel" aria-label="Choose minute"></div>
             </div>
+            <button id="saveTimeButton" class="inline-save-action" type="button">Save</button>
           </label>
 
           <button id="editPillsToggleButton" class="edit-option-button" type="button">Edit pills taken</button>
@@ -149,6 +151,7 @@
             <div class="single-wheel-picker pills-taken-wheel" id="pillsTakenWheelWrap" aria-label="Choose pills taken" hidden>
               <div class="wheel-picker" id="pillsTakenWheel" aria-label="Choose pills taken"></div>
             </div>
+            <button id="savePillsButton" class="inline-save-action" type="button">Save</button>
           </div>
 
           <button id="editHadSexButton" class="edit-option-button" type="button">Add Encounter</button>
@@ -162,6 +165,7 @@
               <option value="LoveYourself Pasay">LoveYourself Pasay</option>
               <option value="SAIL Calamba">SAIL Calamba</option>
             </select>
+            <button id="saveHivButton" class="inline-save-action" type="button">Save</button>
           </label>
 
           <button id="editNotesToggleButton" class="edit-option-button" type="button">Notes</button>
@@ -169,11 +173,11 @@
           <label class="edit-field" id="editNotesField" hidden>
             <span>Notes</span>
             <textarea id="editNotesInput" rows="5" placeholder="Add notes"></textarea>
+            <button id="saveNotesButton" class="inline-save-action" type="button">Save</button>
           </label>
 
           <div class="edit-dialog__actions">
             <button id="editCancelButton" class="dialog-action dialog-action--no" type="button">Cancel</button>
-            <button class="dialog-action dialog-action--yes" type="submit">Save</button>
           </div>
 
           <button id="editClearButton" class="clear-log-action" type="button">Mark as not taken</button>

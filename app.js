@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v210";
+const APP_VERSION = "v212";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -121,23 +121,28 @@ const editTimeToggleButton = document.querySelector("#editTimeToggleButton");
 const editTimeField = document.querySelector("#editTimeField");
 const editHourWheel = document.querySelector("#editHourWheel");
 const editMinuteWheel = document.querySelector("#editMinuteWheel");
+const saveTimeButton = document.querySelector("#saveTimeButton");
 const editNotesToggleButton = document.querySelector("#editNotesToggleButton");
 const editNotesField = document.querySelector("#editNotesField");
 const editNotesInput = document.querySelector("#editNotesInput");
+const saveNotesButton = document.querySelector("#saveNotesButton");
 const editPillsToggleButton = document.querySelector("#editPillsToggleButton");
 const editPillsField = document.querySelector("#editPillsField");
 const pillsTakenButton = document.querySelector("#pillsTakenButton");
 const pillsTakenWheelWrap = document.querySelector("#pillsTakenWheelWrap");
 const pillsTakenWheel = document.querySelector("#pillsTakenWheel");
+const savePillsButton = document.querySelector("#savePillsButton");
 const editHadSexButton = document.querySelector("#editHadSexButton");
 const editHivTestButton = document.querySelector("#editHivTestButton");
 const editHivTestField = document.querySelector("#editHivTestField");
 const editHivLocationSelect = document.querySelector("#editHivLocationSelect");
+const saveHivButton = document.querySelector("#saveHivButton");
 const refillToggleButton = document.querySelector("#refillToggleButton");
 const refillPillsField = document.querySelector("#refillPillsField");
 const refillPillsButton = document.querySelector("#refillPillsButton");
 const refillPillsWheelWrap = document.querySelector("#refillPillsWheelWrap");
 const refillPillsWheel = document.querySelector("#refillPillsWheel");
+const saveRefillButton = document.querySelector("#saveRefillButton");
 const openSettingsButton = document.querySelector("#openSettingsButton");
 const feedDialog = document.querySelector("#feedDialog");
 const feedForm = document.querySelector("#feedForm");
@@ -247,14 +252,19 @@ encounterCancelButton.addEventListener("click", closeEncounterDialog);
 addEncounterButton.addEventListener("click", addEncounterDraft);
 editForm.addEventListener("submit", saveEditedLogEntry);
 editTimeToggleButton.addEventListener("click", toggleEditTimeField);
+saveTimeButton.addEventListener("click", saveEditedLogEntry);
 editPillsToggleButton.addEventListener("click", toggleEditPillsField);
 editNotesToggleButton.addEventListener("click", toggleEditNotesField);
+saveNotesButton.addEventListener("click", saveEditedLogEntry);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
+savePillsButton.addEventListener("click", saveEditedLogEntry);
 editHadSexButton.addEventListener("click", () => setEditSexStatus("had"));
 editHivTestButton.addEventListener("click", toggleEditHivTest);
 editHivLocationSelect.addEventListener("change", updateEditHivLocation);
+saveHivButton.addEventListener("click", saveEditedLogEntry);
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
+saveRefillButton.addEventListener("click", saveEditedLogEntry);
 openSettingsButton.addEventListener("click", openScheduleDialog);
 feedDialog.addEventListener("click", closeFeedDialogOnBackdrop);
 backFeedButton.addEventListener("click", closeFeedDialog);
@@ -1469,7 +1479,7 @@ function getDefaultEditTime(date) {
 }
 
 async function saveEditedLogEntry(event) {
-  event.preventDefault();
+  event?.preventDefault();
   if (!canLogDate(editingBaseDate)) return;
   hideAppError();
 
@@ -1606,7 +1616,7 @@ function setEditSexStatus(sexStatus) {
 }
 
 function renderEditSexControls() {
-  editHadSexButton.classList.toggle("is-active", editSexStatus === "had");
+  editHadSexButton.classList.remove("is-active");
 }
 
 function toggleEditHivTest() {

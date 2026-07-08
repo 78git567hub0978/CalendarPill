@@ -1477,6 +1477,17 @@ h3 {
   background: var(--ink);
 }
 
+.inline-save-action {
+  justify-self: center;
+  min-width: 112px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: #050505;
+  background: var(--accent);
+  font-weight: 900;
+}
+
 .single-wheel-picker {
   display: grid;
   grid-template-columns: 52px;
