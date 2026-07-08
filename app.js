@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v194";
+const APP_VERSION = "v198";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -97,6 +97,20 @@ const editClearButton = document.querySelector("#editClearButton");
 const sexDialog = document.querySelector("#sexDialog");
 const didNotHaveSexButton = document.querySelector("#didNotHaveSexButton");
 const hadSexButton = document.querySelector("#hadSexButton");
+const encounterDialog = document.querySelector("#encounterDialog");
+const encounterForm = document.querySelector("#encounterForm");
+const encounterCancelButton = document.querySelector("#encounterCancelButton");
+const encounterBodyCountInput = document.querySelector("#encounterBodyCountInput");
+const encounterLocationInput = document.querySelector("#encounterLocationInput");
+const encounterKissSelect = document.querySelector("#encounterKissSelect");
+const encounterISuckedHimSelect = document.querySelector("#encounterISuckedHimSelect");
+const encounterHeSuckedMeSelect = document.querySelector("#encounterHeSuckedMeSelect");
+const encounterIFuckedHimSelect = document.querySelector("#encounterIFuckedHimSelect");
+const encounterHeFuckedMeSelect = document.querySelector("#encounterHeFuckedMeSelect");
+const encounterISwallowedSelect = document.querySelector("#encounterISwallowedSelect");
+const encounterHeSwallowedSelect = document.querySelector("#encounterHeSwallowedSelect");
+const encounterICameSelect = document.querySelector("#encounterICameSelect");
+const encounterHeCameSelect = document.querySelector("#encounterHeCameSelect");
 const editTimeToggleButton = document.querySelector("#editTimeToggleButton");
 const editTimeField = document.querySelector("#editTimeField");
 const editHourWheel = document.querySelector("#editHourWheel");
@@ -171,6 +185,8 @@ let isEditPillsOpen = false;
 let isEditNotesOpen = false;
 let isPillsTakenWheelOpen = false;
 let editSexStatus = "";
+let editEncounterDetails = getDefaultEncounterDetails();
+let encounterDialogMode = "edit";
 let editHivTest = false;
 let editHivLocation = hivTestLocations[0];
 let editRefillStart = false;
@@ -215,7 +231,9 @@ editYesButton.addEventListener("click", showEditForm);
 editCancelButton.addEventListener("click", closeEditDialog);
 editClearButton.addEventListener("click", clearEditedLogEntry);
 didNotHaveSexButton.addEventListener("click", () => saveSexStatusForActiveDate("did-not"));
-hadSexButton.addEventListener("click", () => saveSexStatusForActiveDate("had"));
+hadSexButton.addEventListener("click", openActiveDateEncounterDetails);
+encounterForm.addEventListener("submit", saveEncounterDetails);
+encounterCancelButton.addEventListener("click", closeEncounterDialog);
 editForm.addEventListener("submit", saveEditedLogEntry);
 editTimeToggleButton.addEventListener("click", toggleEditTimeField);
 editPillsToggleButton.addEventListener("click", toggleEditPillsField);
@@ -1123,12 +1141,41 @@ function closeSexDialog() {
   unlockPageScrollIfNoDialog();
 }
 
-async function saveSexStatusForActiveDate(sexStatus) {
+function openActiveDateEncounterDetails() {
+  const key = toKey(selectedDate);
+  const entry = logs[key];
+  encounterDialogMode = "active-date";
+  fillEncounterForm(getLogEncounterDetails(entry));
+  sexDialog.hidden = true;
+  lockPageScroll();
+  encounterDialog.hidden = false;
+}
+
+function closeEncounterDialog() {
+  encounterDialog.hidden = true;
+  unlockPageScrollIfNoDialog();
+}
+
+async function saveEncounterDetails(event) {
+  event.preventDefault();
+  const details = getEncounterDetailsFromForm();
+
+  if (encounterDialogMode === "active-date") {
+    await saveSexStatusForActiveDate("had", details);
+    return;
+  }
+
+  editEncounterDetails = details;
+  closeEncounterDialog();
+}
+
+async function saveSexStatusForActiveDate(sexStatus, encounterDetails = getDefaultEncounterDetails()) {
   const key = toKey(selectedDate);
   const previousEntry = logs[key];
 
   if (!previousEntry) {
     closeSexDialog();
+    closeEncounterDialog();
     return;
   }
 
@@ -1136,6 +1183,7 @@ async function saveSexStatusForActiveDate(sexStatus) {
     ...previousEntry,
     sexStatus,
     notes: sexStatus === "had" ? appendHadSexNote(getLogNotes(previousEntry)) : getLogNotes(previousEntry),
+    encounterDetails: sexStatus === "had" ? normalizeEncounterDetails(encounterDetails) : getDefaultEncounterDetails(),
   };
 
   logs[key] = nextEntry;
@@ -1143,10 +1191,12 @@ async function saveSexStatusForActiveDate(sexStatus) {
   try {
     await saveLogToFirestore(key, nextEntry);
     closeSexDialog();
+    closeEncounterDialog();
     render();
   } catch (error) {
     logs[key] = previousEntry;
     closeSexDialog();
+    closeEncounterDialog();
     showAppError("Could not save this answer. Please try again.");
     console.error(error);
     render();
@@ -1230,7 +1280,7 @@ function lockPageScroll() {
 }
 
 function unlockPageScrollIfNoDialog() {
-  if (!editDialog.hidden || !sexDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden || !postActionsDialog.hidden) return;
+  if (!editDialog.hidden || !sexDialog.hidden || !encounterDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden || !postActionsDialog.hidden) return;
 
   document.body.classList.remove("is-dialog-open");
   document.body.style.position = "";
@@ -1256,6 +1306,7 @@ function fillEditForm(key) {
   isEditNotesOpen = false;
   isPillsTakenWheelOpen = false;
   editSexStatus = getLogSexStatus(entry);
+  editEncounterDetails = getLogEncounterDetails(entry);
   editHivTest = hasHivTestLogged(entry);
   editHivLocation = getLogHivLocation(entry);
   editRefillStart = isRefillStart(entry);
@@ -1300,6 +1351,7 @@ async function saveEditedLogEntry(event) {
     editStartingPills,
     editPillsTaken,
     editSexStatus,
+    editSexStatus === "had" ? editEncounterDetails : getDefaultEncounterDetails(),
     editHivTest,
     editHivLocation
   );
@@ -1404,6 +1456,10 @@ function setEditSexStatus(sexStatus) {
   editSexStatus = sexStatus;
   if (sexStatus === "had") {
     editNotesInput.value = appendHadSexNote(editNotesInput.value);
+    encounterDialogMode = "edit";
+    fillEncounterForm(editEncounterDetails);
+    lockPageScroll();
+    encounterDialog.hidden = false;
   }
   renderEditSexControls();
 }
@@ -1878,6 +1934,7 @@ function parseLogEntry(entry) {
   const sexStatus = entry?.sexStatus === "had" || entry?.sexStatus === "did-not" ? entry.sexStatus : "";
   const hivTest = entry?.hivTest === true;
   const hivLocation = normalizeHivLocation(entry?.hivLocation);
+  const encounterDetails = normalizeEncounterDetails(entry?.encounterDetails);
 
   return {
     takenAt: Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt,
@@ -1886,6 +1943,7 @@ function parseLogEntry(entry) {
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(entry?.startingPills) : 0,
     sexStatus,
+    encounterDetails: sexStatus === "had" ? encounterDetails : getDefaultEncounterDetails(),
     hivTest,
     hivLocation: hivTest ? hivLocation : "",
   };
@@ -1994,6 +2052,7 @@ function createLogEntry(
   startingPills = 0,
   pillsTaken = 1,
   sexStatus = "",
+  encounterDetails = getDefaultEncounterDetails(),
   hivTest = false,
   hivLocation = ""
 ) {
@@ -2004,6 +2063,7 @@ function createLogEntry(
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(startingPills) : 0,
     sexStatus: sexStatus === "had" || sexStatus === "did-not" ? sexStatus : "",
+    encounterDetails: sexStatus === "had" ? normalizeEncounterDetails(encounterDetails) : getDefaultEncounterDetails(),
     hivTest: hivTest === true,
     hivLocation: hivTest === true ? normalizeHivLocation(hivLocation) : "",
   };
@@ -2025,6 +2085,92 @@ function getLogSexStatus(entry) {
   return typeof entry !== "string" && (entry?.sexStatus === "had" || entry?.sexStatus === "did-not")
     ? entry.sexStatus
     : "";
+}
+
+function getLogEncounterDetails(entry) {
+  return typeof entry !== "string" ? normalizeEncounterDetails(entry?.encounterDetails) : getDefaultEncounterDetails();
+}
+
+function getDefaultEncounterDetails() {
+  return {
+    bodyCount: "",
+    location: "",
+    kiss: "No",
+    iSuckedHim: "No",
+    heSuckedMe: "No",
+    iFuckedHim: "No",
+    heFuckedMe: "No",
+    iSwallowedHisCum: "No",
+    heSwallowedMyCum: "No",
+    iCame: "No",
+    heCame: "No",
+  };
+}
+
+function normalizeEncounterDetails(details) {
+  const defaults = getDefaultEncounterDetails();
+  const source = details && typeof details === "object" ? details : {};
+
+  return {
+    bodyCount: source.bodyCount === 0 || source.bodyCount ? String(source.bodyCount) : defaults.bodyCount,
+    location: typeof source.location === "string" ? source.location : defaults.location,
+    kiss: normalizeChoice(source.kiss, ["Yes", "No"], defaults.kiss),
+    iSuckedHim: normalizeChoice(source.iSuckedHim, ["Yes", "No"], defaults.iSuckedHim),
+    heSuckedMe: normalizeChoice(source.heSuckedMe, ["Yes", "No"], defaults.heSuckedMe),
+    iFuckedHim: normalizeChoice(source.iFuckedHim, ["Yes with condom", "Yes bare", "No"], defaults.iFuckedHim),
+    heFuckedMe: normalizeChoice(source.heFuckedMe, ["Yes with condom", "Yes bare", "No"], defaults.heFuckedMe),
+    iSwallowedHisCum: normalizeChoice(source.iSwallowedHisCum, ["Yes", "No"], defaults.iSwallowedHisCum),
+    heSwallowedMyCum: normalizeChoice(source.heSwallowedMyCum, ["Yes", "No"], defaults.heSwallowedMyCum),
+    iCame: normalizeChoice(source.iCame, [
+      "Yes, inside his mouth",
+      "Yes, inside his ass with condom",
+      "Yes, inside his ass bare",
+      "Yes - other",
+      "No",
+    ], defaults.iCame),
+    heCame: normalizeChoice(source.heCame, [
+      "Yes, inside my mouth",
+      "Yes, inside my ass with condom",
+      "Yes, inside my ass bare",
+      "Yes - other",
+      "No",
+    ], defaults.heCame),
+  };
+}
+
+function normalizeChoice(value, choices, fallback) {
+  return choices.includes(value) ? value : fallback;
+}
+
+function fillEncounterForm(details) {
+  const normalizedDetails = normalizeEncounterDetails(details);
+  encounterBodyCountInput.value = normalizedDetails.bodyCount;
+  encounterLocationInput.value = normalizedDetails.location;
+  encounterKissSelect.value = normalizedDetails.kiss;
+  encounterISuckedHimSelect.value = normalizedDetails.iSuckedHim;
+  encounterHeSuckedMeSelect.value = normalizedDetails.heSuckedMe;
+  encounterIFuckedHimSelect.value = normalizedDetails.iFuckedHim;
+  encounterHeFuckedMeSelect.value = normalizedDetails.heFuckedMe;
+  encounterISwallowedSelect.value = normalizedDetails.iSwallowedHisCum;
+  encounterHeSwallowedSelect.value = normalizedDetails.heSwallowedMyCum;
+  encounterICameSelect.value = normalizedDetails.iCame;
+  encounterHeCameSelect.value = normalizedDetails.heCame;
+}
+
+function getEncounterDetailsFromForm() {
+  return normalizeEncounterDetails({
+    bodyCount: encounterBodyCountInput.value.trim(),
+    location: encounterLocationInput.value.trim(),
+    kiss: encounterKissSelect.value,
+    iSuckedHim: encounterISuckedHimSelect.value,
+    heSuckedMe: encounterHeSuckedMeSelect.value,
+    iFuckedHim: encounterIFuckedHimSelect.value,
+    heFuckedMe: encounterHeFuckedMeSelect.value,
+    iSwallowedHisCum: encounterISwallowedSelect.value,
+    heSwallowedMyCum: encounterHeSwallowedSelect.value,
+    iCame: encounterICameSelect.value,
+    heCame: encounterHeCameSelect.value,
+  });
 }
 
 function appendHadSexNote(notes) {

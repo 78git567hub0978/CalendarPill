@@ -80,7 +80,8 @@
           <li><span class="legend-dot is-future"></span>Upcoming</li>
           <li><span class="legend-dot is-schedule-change"></span>Schedule change</li>
           <li><span class="legend-dot is-refill-start"></span>New Bottle</li>
-          <li><span class="legend-dot is-encounter"></span>Encounter</li>
+          <li><span class="legend-dot is-encounter"></span>Had encounter</li>
+          <li><span class="legend-dot is-notes">*</span>Notes</li>
           <li><span class="legend-dot is-ended"></span>PreP stopped</li>
         </ul>
         <div class="legend-tools">
@@ -185,6 +186,109 @@
           <button id="didNotHaveSexButton" class="dialog-action dialog-action--no" type="button">No encounter</button>
           <button id="hadSexButton" class="dialog-action dialog-action--yes" type="button">Had encounter</button>
         </div>
+      </div>
+    </div>
+
+    <div class="edit-dialog" id="encounterDialog" hidden>
+      <div class="edit-dialog__panel encounter-dialog__panel" role="dialog" aria-modal="true" aria-labelledby="encounterDialogTitle">
+        <form class="edit-form" id="encounterForm">
+          <h2 id="encounterDialogTitle">Encounter details</h2>
+
+          <label class="edit-field">
+            <span>Body count</span>
+            <input id="encounterBodyCountInput" type="number" inputmode="numeric" min="0" step="1">
+          </label>
+
+          <label class="edit-field">
+            <span>Location</span>
+            <input id="encounterLocationInput" type="text" autocomplete="off">
+          </label>
+
+          <label class="edit-field">
+            <span>Kiss</span>
+            <select id="encounterKissSelect">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>I sucked him</span>
+            <select id="encounterISuckedHimSelect">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>He sucked me</span>
+            <select id="encounterHeSuckedMeSelect">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>I fucked him</span>
+            <select id="encounterIFuckedHimSelect">
+              <option value="Yes with condom">Yes with condom</option>
+              <option value="Yes bare">Yes bare</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>He fucked me</span>
+            <select id="encounterHeFuckedMeSelect">
+              <option value="Yes with condom">Yes with condom</option>
+              <option value="Yes bare">Yes bare</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>I swallowed his cum</span>
+            <select id="encounterISwallowedSelect">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>He swallowed my cum</span>
+            <select id="encounterHeSwallowedSelect">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>I came</span>
+            <select id="encounterICameSelect">
+              <option value="Yes, inside his mouth">Yes, inside his mouth</option>
+              <option value="Yes, inside his ass with condom">Yes, inside his ass with condom</option>
+              <option value="Yes, inside his ass bare">Yes, inside his ass bare</option>
+              <option value="Yes - other">Yes - other</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label class="edit-field">
+            <span>He came</span>
+            <select id="encounterHeCameSelect">
+              <option value="Yes, inside my mouth">Yes, inside my mouth</option>
+              <option value="Yes, inside my ass with condom">Yes, inside my ass with condom</option>
+              <option value="Yes, inside my ass bare">Yes, inside my ass bare</option>
+              <option value="Yes - other">Yes - other</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <div class="edit-dialog__actions">
+            <button id="encounterCancelButton" class="dialog-action dialog-action--no" type="button">Cancel</button>
+            <button class="dialog-action dialog-action--yes" type="submit">Save</button>
+          </div>
+        </form>
       </div>
     </div>
 

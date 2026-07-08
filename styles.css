@@ -513,6 +513,15 @@ h3 {
   background: #ffd84d;
 }
 
+.legend-dot.is-notes {
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .legend-dot.is-schedule-change {
   border-radius: 2px;
   background: var(--ink);
@@ -664,6 +673,10 @@ h3 {
 
 .sex-dialog__panel {
   gap: 20px;
+}
+
+.encounter-dialog__panel {
+  gap: 16px;
 }
 
 .day {
@@ -920,10 +933,12 @@ h3 {
 
 .detail-panel {
   position: relative;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   margin-top: 14px;
   padding: 14px 44px 14px 14px;
+  overflow: hidden;
 }
 
 .detail-edit-button {
@@ -954,7 +969,7 @@ h3 {
 
 .detail-panel > div:first-child {
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 1 1 260px;
 }
 
 .detail-panel p:last-child {
@@ -1019,13 +1034,14 @@ h3 {
 .detail-actions {
   align-items: flex-end;
   flex-direction: column;
-  flex: 0 1 150px;
-  max-width: 42%;
+  flex: 0 1 min(190px, 100%);
+  max-width: min(190px, 100%);
   gap: 8px;
 }
 
 .detail-actions .primary-action {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   padding: 0 14px;
   font-size: 0.88rem;
@@ -1351,6 +1367,7 @@ h3 {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
+  padding: 10px 12px;
   color: var(--ink);
   background: #101010;
   font: inherit;
@@ -1605,6 +1622,10 @@ h3 {
   .detail-panel {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .detail-actions {
+    max-width: 100%;
   }
 
   .detail-actions button {
