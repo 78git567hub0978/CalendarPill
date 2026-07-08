@@ -687,6 +687,14 @@ h3 {
   display: none;
 }
 
+.encounter-edit-date {
+  margin: -4px 0 2px;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 900;
+  text-align: center;
+}
+
 .encounter-draft-list {
   display: grid;
   gap: 8px;
@@ -1209,6 +1217,11 @@ textarea.encounter-draft-value {
 
 .encounter-detail-panel dt.is-yes,
 .encounter-detail-panel dd.is-yes {
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.encounter-detail-note {
   color: var(--accent);
   font-weight: 900;
 }

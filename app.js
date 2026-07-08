@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v236";
+const APP_VERSION = "v239";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -106,6 +106,7 @@ const hadSexButton = document.querySelector("#hadSexButton");
 const encounterDialog = document.querySelector("#encounterDialog");
 const encounterForm = document.querySelector("#encounterForm");
 const encounterDialogTitle = document.querySelector("#encounterDialogTitle");
+const encounterEditDate = document.querySelector("#encounterEditDate");
 const encounterDraftList = document.querySelector("#encounterDraftList");
 const backEncounterButton = document.querySelector("#backEncounterButton");
 const encounterCancelButton = document.querySelector("#encounterCancelButton");
@@ -770,13 +771,25 @@ function appendEncounterDetailRows(detailList, details) {
     const valueText = value || "Not entered";
 
     term.textContent = `${label}:`;
-    description.textContent = note ? `${valueText} - ${note}` : valueText;
-    if (
+    if (note) {
+      const valueSpan = document.createElement("span");
+      const separator = document.createTextNode(" - ");
+      const noteSpan = document.createElement("span");
+
+      valueSpan.textContent = valueText;
+      noteSpan.className = "encounter-detail-note";
+      noteSpan.textContent = note;
+      description.append(valueSpan, separator, noteSpan);
+    } else {
+      description.textContent = valueText;
+    }
+
+    const shouldHighlightValue =
       valueText === "Yes" ||
-      Boolean(note) ||
       (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
-      (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered")
-    ) {
+      (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered");
+
+    if (shouldHighlightValue) {
       term.classList.add("is-yes");
       description.classList.add("is-yes");
     }
@@ -1432,6 +1445,7 @@ function validateEncounterForm() {
 
 function renderEncounterDialogTitle() {
   encounterDialogTitle.textContent = `Encounter ${encounterDialogEditIndex + 1}`;
+  encounterEditDate.textContent = dateFormatter.format(selectedDate);
   renderEncounterDraftList();
 }
 
@@ -2401,16 +2415,16 @@ async function loadUserData(uid) {
 }
 
 async function applyDataFixes() {
-  const key = "2026-06-28";
+  const key = "2026-07-27";
   const entry = logs[key];
   const encounterDetails = getLogEncounterDetailsList(entry);
 
-  if (!entry || !encounterDetails[0] || encounterDetails[0].bodyCount === "12") return;
+  if (!entry || !encounterDetails[0] || encounterDetails[0].bodyCount === "9") return;
 
   const fixedEntry = {
     ...entry,
     encounterDetails: encounterDetails.map((details, index) => index === 0
-      ? { ...details, bodyCount: "12" }
+      ? { ...details, bodyCount: "9" }
       : details),
   };
 
