@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v174";
+const APP_VERSION = "v177";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -88,6 +88,9 @@ const editNoButton = document.querySelector("#editNoButton");
 const editYesButton = document.querySelector("#editYesButton");
 const editCancelButton = document.querySelector("#editCancelButton");
 const editClearButton = document.querySelector("#editClearButton");
+const sexDialog = document.querySelector("#sexDialog");
+const didNotHaveSexButton = document.querySelector("#didNotHaveSexButton");
+const hadSexButton = document.querySelector("#hadSexButton");
 const editTimeToggleButton = document.querySelector("#editTimeToggleButton");
 const editTimeField = document.querySelector("#editTimeField");
 const editHourWheel = document.querySelector("#editHourWheel");
@@ -196,6 +199,8 @@ editNoButton.addEventListener("click", () => closeEditDialog(false));
 editYesButton.addEventListener("click", showEditForm);
 editCancelButton.addEventListener("click", closeEditDialog);
 editClearButton.addEventListener("click", clearEditedLogEntry);
+didNotHaveSexButton.addEventListener("click", () => saveSexStatusForActiveDate("did-not"));
+hadSexButton.addEventListener("click", () => saveSexStatusForActiveDate("had"));
 editForm.addEventListener("submit", saveEditedLogEntry);
 editTimeToggleButton.addEventListener("click", toggleEditTimeField);
 editPillsToggleButton.addEventListener("click", toggleEditPillsField);
@@ -459,6 +464,7 @@ function renderCalendar() {
     if (!logs[key] && isMissedDate(date, logs[key])) button.classList.add("is-missed");
     if (!ended && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
     if (isRefillStart(logs[key])) button.classList.add("is-refill-start");
+    if (hasSexLogged(logs[key])) button.classList.add("has-sex");
     if (logs[key] && getLogNotes(logs[key]).trim()) button.classList.add("has-notes");
 
     time.dateTime = key;
@@ -1078,9 +1084,50 @@ async function markTaken(date) {
   try {
     await saveLogToFirestore(key, entry);
     render();
+    openSexDialog();
   } catch (error) {
     delete logs[key];
     showAppError("Could not save this dose. Please try again.");
+    console.error(error);
+    render();
+  }
+}
+
+function openSexDialog() {
+  lockPageScroll();
+  sexDialog.hidden = false;
+}
+
+function closeSexDialog() {
+  sexDialog.hidden = true;
+  unlockPageScrollIfNoDialog();
+}
+
+async function saveSexStatusForActiveDate(sexStatus) {
+  const key = toKey(selectedDate);
+  const previousEntry = logs[key];
+
+  if (!previousEntry) {
+    closeSexDialog();
+    return;
+  }
+
+  const nextEntry = {
+    ...previousEntry,
+    sexStatus,
+    notes: sexStatus === "had" ? appendHadSexNote(getLogNotes(previousEntry)) : getLogNotes(previousEntry),
+  };
+
+  logs[key] = nextEntry;
+
+  try {
+    await saveLogToFirestore(key, nextEntry);
+    closeSexDialog();
+    render();
+  } catch (error) {
+    logs[key] = previousEntry;
+    closeSexDialog();
+    showAppError("Could not save this answer. Please try again.");
     console.error(error);
     render();
   }
@@ -1147,7 +1194,7 @@ function lockPageScroll() {
 }
 
 function unlockPageScrollIfNoDialog() {
-  if (!editDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden || !postActionsDialog.hidden) return;
+  if (!editDialog.hidden || !sexDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden || !postActionsDialog.hidden) return;
 
   document.body.classList.remove("is-dialog-open");
   document.body.style.position = "";
@@ -1207,7 +1254,8 @@ async function saveEditedLogEntry(event) {
     editNotesInput.value.trim(),
     editRefillStart,
     editStartingPills,
-    editPillsTaken
+    editPillsTaken,
+    getLogSexStatus(previousEntry)
   );
 
   if (editingKey !== toKey(updatedDate)) {
@@ -1746,6 +1794,7 @@ function parseSettings(savedSettings) {
 function parseLogEntry(entry) {
   const takenAt = typeof entry?.takenAt === "string" ? entry.takenAt : "";
   const refillStart = entry?.refillStart === true;
+  const sexStatus = entry?.sexStatus === "had" || entry?.sexStatus === "did-not" ? entry.sexStatus : "";
 
   return {
     takenAt: Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt,
@@ -1753,6 +1802,7 @@ function parseLogEntry(entry) {
     pillsTaken: normalizePillsTaken(entry?.pillsTaken),
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(entry?.startingPills) : 0,
+    sexStatus,
   };
 }
 
@@ -1852,13 +1902,14 @@ function schedulesMatch(first, second) {
   return first.hours === second.hours && first.minutes === second.minutes;
 }
 
-function createLogEntry(takenAt, notes, refillStart = false, startingPills = 0, pillsTaken = 1) {
+function createLogEntry(takenAt, notes, refillStart = false, startingPills = 0, pillsTaken = 1, sexStatus = "") {
   return {
     takenAt: takenAt.toISOString(),
     notes,
     pillsTaken: normalizePillsTaken(pillsTaken),
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(startingPills) : 0,
+    sexStatus: sexStatus === "had" || sexStatus === "did-not" ? sexStatus : "",
   };
 }
 
@@ -1872,6 +1923,24 @@ function getLogNotes(entry) {
 
 function getLogPillsTaken(entry) {
   return typeof entry === "string" ? 1 : normalizePillsTaken(entry?.pillsTaken);
+}
+
+function getLogSexStatus(entry) {
+  return typeof entry !== "string" && (entry?.sexStatus === "had" || entry?.sexStatus === "did-not")
+    ? entry.sexStatus
+    : "";
+}
+
+function appendHadSexNote(notes) {
+  const note = "Had sex today.";
+  const trimmedNotes = notes.trim();
+  if (!trimmedNotes) return note;
+  if (trimmedNotes.includes(note)) return trimmedNotes;
+  return `${trimmedNotes}\n${note}`;
+}
+
+function hasSexLogged(entry) {
+  return getLogSexStatus(entry) === "had";
 }
 
 function isRefillStart(entry) {
