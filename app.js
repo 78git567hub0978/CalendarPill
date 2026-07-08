@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v248";
+const APP_VERSION = "v251";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -277,7 +277,6 @@ pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 savePillsButton.addEventListener("click", saveEditedLogEntry);
 editHadSexButton.addEventListener("click", openEditEncountersWindow);
 editHivTestButton.addEventListener("click", openEditHivSection);
-editHivLocationSelect.addEventListener("change", saveEditHivTest);
 saveHivButton.addEventListener("click", saveEditHivTest);
 refillToggleButton.addEventListener("click", openEditRefillSection);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
@@ -2422,7 +2421,29 @@ async function loadUserData(uid) {
 }
 
 async function applyDataFixes() {
+  await ensureHivTestLogged("2026-06-27");
   await normalizeEncounterBodyCountsFromStart();
+}
+
+async function ensureHivTestLogged(key) {
+  const entry = logs[key];
+  if (!entry || entry.hivTest === true) return;
+
+  const rawHivLocation = typeof entry?.hivLocation === "string" ? entry.hivLocation : "";
+  const hasSavedHivLocation = hivTestLocations.includes(rawHivLocation);
+  const hasSavedHivNote = /^HIV Negative at .+\.?$/im.test(getLogNotes(entry));
+  if (!hasSavedHivLocation && !hasSavedHivNote) return;
+
+  const hivLocation = hasSavedHivLocation ? normalizeHivLocation(rawHivLocation) : getLogHivLocation(entry);
+  const fixedEntry = {
+    ...entry,
+    notes: appendHivTestNote(getLogNotes(entry), hivLocation),
+    hivTest: true,
+    hivLocation,
+  };
+
+  logs[key] = fixedEntry;
+  await saveLogToFirestore(key, fixedEntry);
 }
 
 async function normalizeEncounterBodyCountsFromStart() {
@@ -2547,7 +2568,10 @@ function parseLogEntry(entry) {
   const takenAt = typeof entry?.takenAt === "string" ? entry.takenAt : "";
   const refillStart = entry?.refillStart === true;
   const sexStatus = entry?.sexStatus === "had" || entry?.sexStatus === "did-not" ? entry.sexStatus : "";
-  const hivTest = entry?.hivTest === true;
+  const rawHivLocation = typeof entry?.hivLocation === "string" ? entry.hivLocation : "";
+  const hasSavedHivLocation = hivTestLocations.includes(rawHivLocation);
+  const hasHivNote = /^HIV Negative at .+\.?$/im.test(typeof entry?.notes === "string" ? entry.notes : "");
+  const hivTest = entry?.hivTest === true || hasSavedHivLocation || hasHivNote;
   const hivLocation = normalizeHivLocation(entry?.hivLocation);
   const encounterDetails = normalizeEncounterDetailsList(entry?.encounterDetails);
 
@@ -2907,12 +2931,13 @@ function hasSexLogged(entry) {
 function hasHivTestLogged(entry) {
   return typeof entry !== "string" && (
     entry?.hivTest === true ||
+    hivTestLocations.includes(entry?.hivLocation) ||
     /^HIV Negative at .+\.?$/im.test(getLogNotes(entry))
   );
 }
 
 function getLogHivLocation(entry) {
-  return typeof entry !== "string" && entry?.hivTest === true
+  return typeof entry !== "string" && hasHivTestLogged(entry)
     ? normalizeHivLocation(entry?.hivLocation)
     : hivTestLocations[0];
 }

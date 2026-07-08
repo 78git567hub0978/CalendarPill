@@ -838,6 +838,12 @@ textarea.encounter-draft-value {
   pointer-events: none;
 }
 
+.day.is-refill-start.has-sex .day-number::before,
+.day.is-schedule-change.has-sex .day-number::before {
+  width: 18px;
+  height: 18px;
+}
+
 .day.has-hiv-test time::after {
   content: "*";
   position: absolute;
