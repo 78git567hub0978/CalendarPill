@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v186";
+const APP_VERSION = "v187";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -1366,6 +1366,9 @@ function renderEditPillsControls() {
 
 function setEditSexStatus(sexStatus) {
   editSexStatus = sexStatus;
+  if (sexStatus === "had") {
+    editNotesInput.value = appendHadSexNote(editNotesInput.value);
+  }
   renderEditSexControls();
 }
 
