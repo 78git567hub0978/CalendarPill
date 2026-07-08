@@ -829,16 +829,27 @@ textarea.encounter-draft-value {
   pointer-events: none;
 }
 
-.day.has-hiv-test .day-number::after {
-  content: "♥";
+.day.has-hiv-test time::before,
+.day.has-hiv-test time::after {
+  content: "";
   position: absolute;
-  right: -9px;
-  top: -10px;
-  z-index: 3;
-  color: #050505;
-  font-size: 0.55rem;
-  font-weight: 900;
-  line-height: 1;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: 36px;
+  height: 7px;
+  border-radius: 999px;
+  background: #ff2d2d;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.day.has-hiv-test time::before {
+  transform: translate(-50%, -50%) rotate(42deg);
+}
+
+.day.has-hiv-test time::after {
+  transform: translate(-50%, -50%) rotate(-42deg);
 }
 
 .note-marker {

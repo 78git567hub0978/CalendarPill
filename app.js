@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v239";
+const APP_VERSION = "v241";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -2415,16 +2415,20 @@ async function loadUserData(uid) {
 }
 
 async function applyDataFixes() {
-  const key = "2026-07-27";
+  await setEncounterBodyCount("2026-07-27", 0, "9");
+  await setEncounterBodyCount("2026-06-27", 0, "9");
+}
+
+async function setEncounterBodyCount(key, encounterIndex, bodyCount) {
   const entry = logs[key];
   const encounterDetails = getLogEncounterDetailsList(entry);
 
-  if (!entry || !encounterDetails[0] || encounterDetails[0].bodyCount === "9") return;
+  if (!entry || !encounterDetails[encounterIndex] || encounterDetails[encounterIndex].bodyCount === bodyCount) return;
 
   const fixedEntry = {
     ...entry,
-    encounterDetails: encounterDetails.map((details, index) => index === 0
-      ? { ...details, bodyCount: "9" }
+    encounterDetails: encounterDetails.map((details, index) => index === encounterIndex
+      ? { ...details, bodyCount }
       : details),
   };
 
