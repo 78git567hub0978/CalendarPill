@@ -692,8 +692,14 @@ h3 {
   z-index: 2;
 }
 
-.day.has-sex .day-number {
-  color: #ff2f2f;
+.day.has-sex time::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: 1;
+  border: 2px solid #ff2f2f;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .note-marker {
@@ -726,7 +732,7 @@ h3 {
 }
 
 .day.is-today time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--ink);
 }
 
@@ -748,54 +754,54 @@ h3 {
 }
 
 .day.is-taken time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--accent);
 }
 
 .day.is-taken.is-today time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--accent);
 }
 
 .day.is-taken.is-off-schedule time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--off-schedule);
 }
 
 .day.is-taken.is-early time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--early);
 }
 
 .day.is-future time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--future);
 }
 
 .day.is-future:not(.is-ended) time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--future);
 }
 
 .day.is-taken.is-on-time time,
 .day.is-taken.is-future:not(.is-ended) time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--accent);
 }
 
 .day.is-taken.is-off-schedule.is-future:not(.is-ended) time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--off-schedule);
 }
 
 .day.is-taken.is-early.is-future:not(.is-ended) time,
 .day.is-taken.is-early.is-today time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--early);
 }
 
 .day.is-missed time {
-  color: var(--ink);
+  color: #050505;
   --date-fill: var(--missed);
 }
 
@@ -1337,6 +1343,34 @@ h3 {
 
 .pills-taken-field {
   justify-items: center;
+}
+
+.edit-sex-field {
+  gap: 8px;
+}
+
+.edit-sex-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.edit-sex-button {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #050505;
+  background: #8a8a8a;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.edit-sex-button.is-active {
+  background: var(--accent);
+}
+
+.edit-sex-button:last-child.is-active {
+  background: var(--missed);
 }
 
 .pill-count-button {

@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v177";
+const APP_VERSION = "v180";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -103,6 +103,8 @@ const editPillsField = document.querySelector("#editPillsField");
 const pillsTakenButton = document.querySelector("#pillsTakenButton");
 const pillsTakenWheelWrap = document.querySelector("#pillsTakenWheelWrap");
 const pillsTakenWheel = document.querySelector("#pillsTakenWheel");
+const editDidNotHaveSexButton = document.querySelector("#editDidNotHaveSexButton");
+const editHadSexButton = document.querySelector("#editHadSexButton");
 const refillToggleButton = document.querySelector("#refillToggleButton");
 const refillPillsField = document.querySelector("#refillPillsField");
 const refillPillsButton = document.querySelector("#refillPillsButton");
@@ -159,6 +161,7 @@ let isEditTimeOpen = false;
 let isEditPillsOpen = false;
 let isEditNotesOpen = false;
 let isPillsTakenWheelOpen = false;
+let editSexStatus = "";
 let editRefillStart = false;
 let editStartingPills = 30;
 let isRefillPillsWheelOpen = false;
@@ -206,6 +209,8 @@ editTimeToggleButton.addEventListener("click", toggleEditTimeField);
 editPillsToggleButton.addEventListener("click", toggleEditPillsField);
 editNotesToggleButton.addEventListener("click", toggleEditNotesField);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
+editDidNotHaveSexButton.addEventListener("click", () => setEditSexStatus("did-not"));
+editHadSexButton.addEventListener("click", () => setEditSexStatus("had"));
 refillToggleButton.addEventListener("click", toggleEditRefillStart);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 openSettingsButton.addEventListener("click", openScheduleDialog);
@@ -1219,6 +1224,7 @@ function fillEditForm(key) {
   isEditPillsOpen = false;
   isEditNotesOpen = false;
   isPillsTakenWheelOpen = false;
+  editSexStatus = getLogSexStatus(entry);
   editRefillStart = isRefillStart(entry);
   editStartingPills = getLogStartingPills(entry) || 30;
   isRefillPillsWheelOpen = false;
@@ -1228,6 +1234,7 @@ function fillEditForm(key) {
   renderEditNotesControls();
   renderEditPillsControls();
   renderPillsTakenControls();
+  renderEditSexControls();
   renderRefillControls();
 }
 
@@ -1249,13 +1256,16 @@ async function saveEditedLogEntry(event) {
   updatedDate.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
+  const editedNotes = editSexStatus === "had"
+    ? appendHadSexNote(editNotesInput.value.trim())
+    : editNotesInput.value.trim();
   const entry = createLogEntry(
     updatedDate,
-    editNotesInput.value.trim(),
+    editedNotes,
     editRefillStart,
     editStartingPills,
     editPillsTaken,
-    getLogSexStatus(previousEntry)
+    editSexStatus
   );
 
   if (editingKey !== toKey(updatedDate)) {
@@ -1352,6 +1362,16 @@ function toggleEditPillsField() {
 function renderEditPillsControls() {
   editPillsField.hidden = !isEditPillsOpen;
   editPillsToggleButton.classList.toggle("is-active", isEditPillsOpen);
+}
+
+function setEditSexStatus(sexStatus) {
+  editSexStatus = sexStatus;
+  renderEditSexControls();
+}
+
+function renderEditSexControls() {
+  editDidNotHaveSexButton.classList.toggle("is-active", editSexStatus === "did-not");
+  editHadSexButton.classList.toggle("is-active", editSexStatus === "had");
 }
 
 function toggleEditNotesField() {
