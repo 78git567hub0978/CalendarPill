@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v233";
+const APP_VERSION = "v235";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -405,6 +405,7 @@ async function handleAuthStateChanged(user) {
 
   try {
     await loadUserData(user.uid);
+    await applyDataFixes();
     writeCachedUserData(user.uid);
     isDataReady = true;
     authGate.hidden = true;
@@ -1350,7 +1351,7 @@ function openActiveDateEncounterDetails() {
   const entry = logs[key];
   encounterDialogMode = "active-date";
   encounterDialogDetails = getLogEncounterDetailsList(entry);
-  if (!encounterDialogDetails.length) encounterDialogDetails = [getDefaultEncounterDetails()];
+  if (!encounterDialogDetails.length) encounterDialogDetails = [createDefaultEncounterDetails(1)];
   encounterDialogEditIndex = encounterDialogDetails.length - 1;
   renderEncounterDialogTitle();
   sexDialog.hidden = true;
@@ -1412,7 +1413,7 @@ function addEncounterDraft() {
 
   encounterDialogDetails = normalizeEncounterDetailsList([
     ...encounterDialogDetails,
-    getDefaultEncounterDetails(),
+    createDefaultEncounterDetails(encounterDialogDetails.length + 1),
   ]);
   encounterDialogEditIndex = encounterDialogDetails.length - 1;
   renderEncounterDialogTitle();
@@ -1517,12 +1518,19 @@ function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
   control.value = value;
   control.addEventListener(!isNote && rowConfig.type === "select" ? "change" : "input", () => {
     updateEncounterDialogDetail(encounterIndex, rowConfig.key, control.value, isNote);
+    if (isNote) {
+      control.classList.toggle("is-empty", !control.value.trim());
+      control.classList.toggle("is-yes", Boolean(control.value.trim()));
+    }
   });
 
   if (!isNote && isGreenEncounterValue(rowConfig.label, control.value)) {
     control.classList.add("is-yes");
   }
-  if (isNote && !control.value) control.classList.add("is-empty");
+  if (isNote) {
+    control.classList.toggle("is-empty", !control.value);
+    control.classList.toggle("is-yes", Boolean(control.value));
+  }
 
   return control;
 }
@@ -1977,7 +1985,7 @@ function openEditEncountersWindow() {
   encounterDialogMode = "edit";
   encounterDialogDetails = editEncounterDetails.length
     ? normalizeEncounterDetailsList(editEncounterDetails)
-    : [getDefaultEncounterDetails()];
+    : [createDefaultEncounterDetails(1)];
   encounterDialogEditIndex = 0;
   renderEncounterDialogTitle();
   lockPageScroll();
@@ -2391,6 +2399,24 @@ async function loadUserData(uid) {
   feedPosts.sort((first, second) => second.createdAt.localeCompare(first.createdAt));
 }
 
+async function applyDataFixes() {
+  const key = "2026-06-28";
+  const entry = logs[key];
+  const encounterDetails = getLogEncounterDetailsList(entry);
+
+  if (!entry || !encounterDetails[0] || encounterDetails[0].bodyCount === "12") return;
+
+  const fixedEntry = {
+    ...entry,
+    encounterDetails: encounterDetails.map((details, index) => index === 0
+      ? { ...details, bodyCount: "12" }
+      : details),
+  };
+
+  logs[key] = fixedEntry;
+  await saveLogToFirestore(key, fixedEntry);
+}
+
 function getCacheKey(uid) {
   return `${localCachePrefix}-${uid}`;
 }
@@ -2634,6 +2660,13 @@ function getDefaultEncounterDetails() {
   };
 }
 
+function createDefaultEncounterDetails(bodyCount) {
+  return {
+    ...getDefaultEncounterDetails(),
+    bodyCount: String(bodyCount),
+  };
+}
+
 function getDefaultEncounterLineNotes() {
   return {
     bodyCount: "",
@@ -2701,17 +2734,11 @@ function getEncounterLineNote(details, key) {
 
 function normalizeEncounterDetailsList(details) {
   if (Array.isArray(details)) {
-    return details.map((detail, index) => ({
-      ...normalizeEncounterDetails(detail),
-      bodyCount: String(index + 1),
-    }));
+    return details.map(normalizeEncounterDetails);
   }
 
   if (details && typeof details === "object") {
-    return [{
-      ...normalizeEncounterDetails(details),
-      bodyCount: "1",
-    }];
+    return [normalizeEncounterDetails(details)];
   }
 
   return [];
@@ -2741,7 +2768,7 @@ function fillEncounterForm(details) {
 
 function getEncounterDetailsFromForm() {
   return normalizeEncounterDetails({
-    bodyCount: String(encounterDialogEditIndex + 1),
+    bodyCount: encounterBodyCountInput.value.trim(),
     location: encounterLocationInput.value.trim(),
     kiss: encounterKissSelect.value,
     iSuckedHim: encounterISuckedHimSelect.value,

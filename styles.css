@@ -757,7 +757,8 @@ h3 {
   font: inherit;
 }
 
-.encounter-draft-value.is-yes {
+.encounter-draft-value.is-yes,
+.encounter-draft-note.is-yes {
   color: var(--accent);
   font-weight: 900;
 }
