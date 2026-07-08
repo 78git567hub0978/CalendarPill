@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v235";
+const APP_VERSION = "v236";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -773,6 +773,7 @@ function appendEncounterDetailRows(detailList, details) {
     description.textContent = note ? `${valueText} - ${note}` : valueText;
     if (
       valueText === "Yes" ||
+      Boolean(note) ||
       (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
       (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered")
     ) {
