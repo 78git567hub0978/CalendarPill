@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v198";
+const APP_VERSION = "v199";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -2187,7 +2187,7 @@ function appendHadSexNote(notes) {
 
 function appendHivTestNote(notes, location) {
   const trimmedNotes = removeHivTestNote(notes);
-  const hivNote = `HIV Negative.\nLocation: ${normalizeHivLocation(location)}`;
+  const hivNote = `HIV Negative at ${normalizeHivLocation(location)}.`;
   return trimmedNotes ? `${trimmedNotes}\n${hivNote}` : hivNote;
 }
 
@@ -2196,6 +2196,9 @@ function removeHivTestNote(notes) {
   const keptLines = [];
 
   for (let index = 0; index < lines.length; index += 1) {
+    if (/^HIV Negative at .+\.?$/i.test(lines[index].trim())) {
+      continue;
+    }
     if (/^HIV Negative\.?$/i.test(lines[index].trim())) {
       if (/^Location:\s*/i.test(lines[index + 1]?.trim() || "")) index += 1;
       continue;
