@@ -1,9 +1,11 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v244";
+const APP_VERSION = "v248";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
+const encounterBodyCountStartKey = "2026-06-27";
+const encounterBodyCountStartValue = 9;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYAeH3upeJDJITdTTnECSphPr5IIW-R_4",
@@ -41,7 +43,9 @@ const hivTestLocations = [
   "LoveYourself Mandaluyong",
   "LoveYourself Pasay",
   "SAIL Calamba",
+  "Other",
 ];
+const hivNotTestedOption = "Not tested";
 const scheduleWindowMs = 10 * 60 * 1000;
 const feedUploadTimeoutMs = 30000;
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -84,6 +88,7 @@ const appVersion = document.querySelector("#appVersion");
 const selectedTitle = document.querySelector("#selectedTitle");
 const selectedMeta = document.querySelector("#selectedMeta");
 const encounterDetailPanel = document.querySelector("#encounterDetailPanel");
+const encounterDetailDate = document.querySelector("#encounterDetailDate");
 const encounterDetailList = document.querySelector("#encounterDetailList");
 const editEncounterIconButton = document.querySelector("#editEncounterIconButton");
 const markActionMessage = document.querySelector("#markActionMessage");
@@ -748,6 +753,7 @@ function renderEncounterDetails(loggedAt) {
   const showDetails = loggedAt && getLogSexStatus(loggedAt) === "had";
   encounterDetailPanel.hidden = !showDetails;
   if (!showDetails) return;
+  encounterDetailDate.textContent = dateFormatter.format(selectedDate);
 
   getLogEncounterDetailsList(loggedAt).forEach((details, index) => {
     const group = document.createElement("section");
@@ -1365,7 +1371,7 @@ function openActiveDateEncounterDetails() {
   const entry = logs[key];
   encounterDialogMode = "active-date";
   encounterDialogDetails = getLogEncounterDetailsList(entry);
-  if (!encounterDialogDetails.length) encounterDialogDetails = [createDefaultEncounterDetails(1)];
+  if (!encounterDialogDetails.length) encounterDialogDetails = [createDefaultEncounterDetails(getNextEncounterBodyCount())];
   encounterDialogEditIndex = encounterDialogDetails.length - 1;
   renderEncounterDialogTitle();
   sexDialog.hidden = true;
@@ -1427,7 +1433,7 @@ function addEncounterDraft() {
 
   encounterDialogDetails = normalizeEncounterDetailsList([
     ...encounterDialogDetails,
-    createDefaultEncounterDetails(encounterDialogDetails.length + 1),
+    createDefaultEncounterDetails(getNextEncounterBodyCount()),
   ]);
   encounterDialogEditIndex = encounterDialogDetails.length - 1;
   renderEncounterDialogTitle();
@@ -1998,9 +2004,10 @@ function renderEditPillsControls() {
 
 function openEditEncountersWindow() {
   encounterDialogMode = "edit";
+  encounterDialogDetails = [];
   encounterDialogDetails = editEncounterDetails.length
     ? normalizeEncounterDetailsList(editEncounterDetails)
-    : [createDefaultEncounterDetails(1)];
+    : [createDefaultEncounterDetails(getNextEncounterBodyCount())];
   encounterDialogEditIndex = 0;
   renderEncounterDialogTitle();
   lockPageScroll();
@@ -2014,25 +2021,26 @@ function renderEditSexControls() {
 
 function openEditHivSection() {
   activeEditSection = "hiv";
-  editHivTest = true;
-  editNotesInput.value = appendHivTestNote(editNotesInput.value, editHivLocation);
   renderEditSection();
   renderEditHivTestControls();
 }
 
 async function saveEditHivTest(event) {
   event?.preventDefault();
-  editHivLocation = normalizeHivLocation(editHivLocationSelect.value);
-  editHivTest = true;
-  editNotesInput.value = appendHivTestNote(removeHivTestNote(editNotesInput.value), editHivLocation);
+  const selectedHivLocation = editHivLocationSelect.value;
+  editHivTest = selectedHivLocation !== hivNotTestedOption;
+  editHivLocation = editHivTest ? normalizeHivLocation(selectedHivLocation) : hivTestLocations[0];
+  editNotesInput.value = editHivTest
+    ? appendHivTestNote(removeHivTestNote(editNotesInput.value), editHivLocation)
+    : removeHivTestNote(editNotesInput.value);
   renderEditHivTestControls();
   await saveEditedLogEntry();
 }
 
 function renderEditHivTestControls() {
   editHivTestButton.classList.toggle("is-active", editHivTest);
-  editHivTestField.hidden = activeEditSection !== "hiv" || !editHivTest;
-  editHivLocationSelect.value = editHivLocation;
+  editHivTestField.hidden = activeEditSection !== "hiv";
+  editHivLocationSelect.value = editHivTest ? editHivLocation : hivNotTestedOption;
 }
 
 function openEditNotesSection() {
@@ -2414,25 +2422,63 @@ async function loadUserData(uid) {
 }
 
 async function applyDataFixes() {
-  await setEncounterBodyCount("2026-07-27", 0, "9");
-  await setEncounterBodyCount("2026-06-27", 0, "9");
+  await normalizeEncounterBodyCountsFromStart();
 }
 
-async function setEncounterBodyCount(key, encounterIndex, bodyCount) {
-  const entry = logs[key];
-  const encounterDetails = getLogEncounterDetailsList(entry);
+async function normalizeEncounterBodyCountsFromStart() {
+  let bodyCount = encounterBodyCountStartValue;
+  const keys = Object.keys(logs)
+    .filter((key) => key >= encounterBodyCountStartKey)
+    .sort();
 
-  if (!entry || !encounterDetails[encounterIndex] || encounterDetails[encounterIndex].bodyCount === bodyCount) return;
+  for (const key of keys) {
+    const entry = logs[key];
+    const encounterDetails = getLogEncounterDetailsList(entry);
 
-  const fixedEntry = {
-    ...entry,
-    encounterDetails: encounterDetails.map((details, index) => index === encounterIndex
-      ? { ...details, bodyCount }
-      : details),
-  };
+    if (!entry || getLogSexStatus(entry) !== "had" || !encounterDetails.length) continue;
 
-  logs[key] = fixedEntry;
-  await saveLogToFirestore(key, fixedEntry);
+    let changed = false;
+    const fixedEncounterDetails = encounterDetails.map((details) => {
+      const nextBodyCount = String(bodyCount);
+      bodyCount += 1;
+      if (details.bodyCount === nextBodyCount) return details;
+      changed = true;
+      return {
+        ...details,
+        bodyCount: nextBodyCount,
+      };
+    });
+
+    if (!changed) continue;
+
+    const fixedEntry = {
+      ...entry,
+      encounterDetails: fixedEncounterDetails,
+    };
+
+    logs[key] = fixedEntry;
+    await saveLogToFirestore(key, fixedEntry);
+  }
+}
+
+function getNextEncounterBodyCount() {
+  let nextBodyCount = encounterBodyCountStartValue;
+  const selectedKey = toKey(selectedDate);
+
+  Object.keys(logs)
+    .filter((key) => key >= encounterBodyCountStartKey && key < selectedKey)
+    .sort()
+    .forEach((key) => {
+      nextBodyCount += getLogSexStatus(logs[key]) === "had"
+        ? getLogEncounterDetailsList(logs[key]).length
+        : 0;
+    });
+
+  if (selectedKey >= encounterBodyCountStartKey) {
+    nextBodyCount += encounterDialogDetails.length;
+  }
+
+  return nextBodyCount;
 }
 
 function getCacheKey(uid) {
