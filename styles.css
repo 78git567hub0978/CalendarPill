@@ -686,7 +686,7 @@ h3 {
 
 .encounter-draft-item {
   display: grid;
-  gap: 2px;
+  gap: 10px;
   padding: 10px 12px;
   border-radius: 16px;
   background: #242424;
@@ -712,11 +712,29 @@ h3 {
   font-weight: 900;
 }
 
-.encounter-draft-item span {
+.encounter-draft-details {
+  display: grid;
+  grid-template-columns: minmax(108px, 0.85fr) minmax(0, 1fr);
+  gap: 7px 10px;
+  margin: 0;
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.25;
+}
+
+.encounter-draft-details dt {
+  font-weight: 800;
+}
+
+.encounter-draft-details dd {
+  margin: 0;
   overflow-wrap: anywhere;
+}
+
+.encounter-draft-details dt.is-yes,
+.encounter-draft-details dd.is-yes {
+  color: var(--accent);
+  font-weight: 900;
 }
 
 .day {

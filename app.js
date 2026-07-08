@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v225";
+const APP_VERSION = "v227";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -268,7 +268,7 @@ editNotesToggleButton.addEventListener("click", openEditNotesSection);
 saveNotesButton.addEventListener("click", saveEditedLogEntry);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 savePillsButton.addEventListener("click", saveEditedLogEntry);
-editHadSexButton.addEventListener("click", () => setEditSexStatus("had"));
+editHadSexButton.addEventListener("click", openEditEncountersWindow);
 editHivTestButton.addEventListener("click", openEditHivSection);
 editHivLocationSelect.addEventListener("change", updateEditHivLocation);
 saveHivButton.addEventListener("click", saveEditedLogEntry);
@@ -754,26 +754,30 @@ function renderEncounterDetails(loggedAt) {
     group.className = "encounter-detail-group";
     heading.textContent = `Encounter ${index + 1}`;
 
-    getEncounterDetailRows(details).forEach(([label, value, note]) => {
-      const term = document.createElement("dt");
-      const description = document.createElement("dd");
-      const valueText = value || "Not entered";
-
-      term.textContent = `${label}:`;
-      description.textContent = note ? `${valueText} - ${note}` : valueText;
-      if (
-        valueText === "Yes" ||
-        (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
-        (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered")
-      ) {
-        term.classList.add("is-yes");
-        description.classList.add("is-yes");
-      }
-      detailList.append(term, description);
-    });
+    appendEncounterDetailRows(detailList, details);
 
     group.append(heading, detailList);
     encounterDetailList.append(group);
+  });
+}
+
+function appendEncounterDetailRows(detailList, details) {
+  getEncounterDetailRows(details).forEach(([label, value, note]) => {
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    const valueText = value || "Not entered";
+
+    term.textContent = `${label}:`;
+    description.textContent = note ? `${valueText} - ${note}` : valueText;
+    if (
+      valueText === "Yes" ||
+      (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
+      (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered")
+    ) {
+      term.classList.add("is-yes");
+      description.classList.add("is-yes");
+    }
+    detailList.append(term, description);
   });
 }
 
@@ -1336,15 +1340,12 @@ function renderEncounterDraftList() {
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => deleteEncounterDraft(index));
 
-    const summary = document.createElement("span");
-    const summaryParts = [
-      normalizedDetails.bodyCount ? `Body count: ${normalizedDetails.bodyCount}` : "",
-      normalizedDetails.location ? `Location: ${normalizedDetails.location}` : "",
-    ].filter(Boolean);
-    summary.textContent = summaryParts.length ? summaryParts.join(" - ") : "Details added";
+    const detailList = document.createElement("dl");
+    detailList.className = "encounter-draft-details";
+    appendEncounterDetailRows(detailList, normalizedDetails);
 
     header.append(title, deleteButton);
-    item.append(header, summary);
+    item.append(header, detailList);
     encounterDraftList.append(item);
   });
 }
@@ -1785,18 +1786,14 @@ function renderEditPillsControls() {
   editPillsToggleButton.classList.toggle("is-active", activeEditSection === "pills");
 }
 
-function setEditSexStatus(sexStatus) {
-  editSexStatus = sexStatus;
-  if (sexStatus === "had") {
-    editNotesInput.value = appendHadSexNote(editNotesInput.value);
-    encounterDialogMode = "edit";
-    encounterDialogDraftDetails = editEncounterDetails;
-    encounterDialogSourceDetails = [];
-    encounterDialogEditIndex = encounterDialogDraftDetails.length;
-    fillEncounterForm(getDefaultEncounterDetails());
-    lockPageScroll();
-    encounterDialog.hidden = false;
-  }
+function openEditEncountersWindow() {
+  encounterDialogMode = "edit";
+  encounterDialogDraftDetails = [];
+  encounterDialogSourceDetails = editEncounterDetails;
+  encounterDialogEditIndex = 0;
+  fillEncounterForm(editEncounterDetails[0] || getDefaultEncounterDetails());
+  lockPageScroll();
+  encounterDialog.hidden = false;
   renderEditSexControls();
 }
 
