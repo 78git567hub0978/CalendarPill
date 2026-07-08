@@ -1229,7 +1229,7 @@ textarea.encounter-draft-value {
 .encounter-detail-panel h3 span {
   color: var(--muted);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .encounter-detail-list {
@@ -1263,7 +1263,7 @@ textarea.encounter-draft-value {
 }
 
 .encounter-detail-panel dt {
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .encounter-detail-panel dd {
@@ -1275,12 +1275,12 @@ textarea.encounter-draft-value {
 .encounter-detail-panel dt.is-yes,
 .encounter-detail-panel dd.is-yes {
   color: var(--accent);
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .encounter-detail-note {
   color: var(--accent);
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .detail-actions {
