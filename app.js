@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v251";
+const APP_VERSION = "v253";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -549,6 +549,13 @@ function renderCalendar() {
       noteMarker.setAttribute("aria-hidden", "true");
       noteMarker.textContent = "*";
       time.append(noteMarker);
+    }
+    if (hasHivTestLogged(logs[key])) {
+      const hivMarker = document.createElement("span");
+      hivMarker.className = "hiv-marker";
+      hivMarker.setAttribute("aria-hidden", "true");
+      hivMarker.textContent = "*";
+      time.append(hivMarker);
     }
     const dateNumber = document.createElement("span");
     dateNumber.className = "day-number";

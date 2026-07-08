@@ -844,8 +844,7 @@ textarea.encounter-draft-value {
   height: 18px;
 }
 
-.day.has-hiv-test time::after {
-  content: "*";
+.hiv-marker {
   position: absolute;
   left: 50%;
   top: -12px;
@@ -872,7 +871,7 @@ textarea.encounter-draft-value {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
-.day.has-hiv-test.has-notes time::after {
+.day.has-hiv-test.has-notes .hiv-marker {
   left: calc(50% + 7px);
 }
 
