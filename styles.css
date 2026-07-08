@@ -679,6 +679,10 @@ h3 {
   gap: 16px;
 }
 
+.encounter-dialog__panel .edit-form-header h2 {
+  display: none;
+}
+
 .encounter-draft-list {
   display: grid;
   gap: 8px;
@@ -697,11 +701,13 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
 }
 
 .encounter-draft-item strong {
   color: var(--ink);
   font-size: 0.84rem;
+  white-space: nowrap;
 }
 
 .encounter-delete-button {
@@ -710,31 +716,51 @@ h3 {
   background: transparent;
   font-size: 0.74rem;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .encounter-draft-details {
   display: grid;
-  grid-template-columns: minmax(108px, 0.85fr) minmax(0, 1fr);
-  gap: 7px 10px;
-  margin: 0;
+  gap: 12px;
+}
+
+.encounter-draft-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, 0.72fr);
+  gap: 8px;
+}
+
+.encounter-draft-label {
+  grid-column: 1 / -1;
   color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.25;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
-.encounter-draft-details dt {
-  font-weight: 800;
-}
-
-.encounter-draft-details dd {
-  margin: 0;
+.encounter-draft-value,
+.encounter-draft-note {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #101010;
+  font-size: 0.9rem;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
-.encounter-draft-details dt.is-yes,
-.encounter-draft-details dd.is-yes {
+.encounter-draft-value.is-yes {
   color: var(--accent);
   font-weight: 900;
+}
+
+.encounter-draft-note.is-empty {
+  color: #777;
 }
 
 .day {

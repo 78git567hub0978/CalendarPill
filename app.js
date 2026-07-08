@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v227";
+const APP_VERSION = "v230";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -1340,13 +1340,46 @@ function renderEncounterDraftList() {
     deleteButton.textContent = "Delete";
     deleteButton.addEventListener("click", () => deleteEncounterDraft(index));
 
-    const detailList = document.createElement("dl");
+    const detailList = document.createElement("div");
     detailList.className = "encounter-draft-details";
-    appendEncounterDetailRows(detailList, normalizedDetails);
+    appendEncounterPreviewRows(detailList, normalizedDetails);
 
     header.append(title, deleteButton);
     item.append(header, detailList);
     encounterDraftList.append(item);
+  });
+}
+
+function appendEncounterPreviewRows(detailList, details) {
+  getEncounterDetailRows(details).forEach(([label, value, note]) => {
+    const row = document.createElement("div");
+    const labelElement = document.createElement("span");
+    const valueElement = document.createElement("span");
+    const noteElement = document.createElement("span");
+    const valueText = value || "Not entered";
+    const noteText = note || "";
+
+    row.className = "encounter-draft-field";
+    labelElement.className = "encounter-draft-label";
+    valueElement.className = "encounter-draft-value";
+    noteElement.className = "encounter-draft-note";
+
+    labelElement.textContent = label;
+    valueElement.textContent = valueText;
+    noteElement.textContent = noteText || "Note";
+
+    if (
+      valueText === "Yes" ||
+      (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
+      (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered")
+    ) {
+      valueElement.classList.add("is-yes");
+    }
+
+    if (!noteText) noteElement.classList.add("is-empty");
+
+    row.append(labelElement, valueElement, noteElement);
+    detailList.append(row);
   });
 }
 
