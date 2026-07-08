@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v212";
+const APP_VERSION = "v215";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -103,6 +103,7 @@ const hadSexButton = document.querySelector("#hadSexButton");
 const encounterDialog = document.querySelector("#encounterDialog");
 const encounterForm = document.querySelector("#encounterForm");
 const encounterDialogTitle = document.querySelector("#encounterDialogTitle");
+const encounterDraftList = document.querySelector("#encounterDraftList");
 const backEncounterButton = document.querySelector("#backEncounterButton");
 const encounterCancelButton = document.querySelector("#encounterCancelButton");
 const addEncounterButton = document.querySelector("#addEncounterButton");
@@ -1260,7 +1261,10 @@ async function saveEncounterDetails(event) {
   }
 
   editEncounterDetails = normalizeEncounterDetailsList(details);
+  editSexStatus = "had";
+  editNotesInput.value = appendHadSexNote(editNotesInput.value);
   closeEncounterDialog();
+  await saveEditedLogEntry();
 }
 
 function addEncounterDraft() {
@@ -1273,7 +1277,34 @@ function addEncounterDraft() {
 }
 
 function renderEncounterDialogTitle() {
-  encounterDialogTitle.textContent = `Encounter ${encounterDialogDraftDetails.length + 1}`;
+  encounterDialogTitle.textContent = `Encounter ${encounterDialogEditIndex + 1}`;
+  renderEncounterDraftList();
+}
+
+function renderEncounterDraftList() {
+  const visibleDetails = getEncounterDialogDetailsForSave();
+
+  encounterDraftList.replaceChildren();
+  encounterDraftList.hidden = visibleDetails.length === 0;
+
+  visibleDetails.forEach((details, index) => {
+    const normalizedDetails = normalizeEncounterDetails(details);
+    const item = document.createElement("div");
+    item.className = "encounter-draft-item";
+
+    const title = document.createElement("strong");
+    title.textContent = `Encounter ${index + 1}`;
+
+    const summary = document.createElement("span");
+    const summaryParts = [
+      normalizedDetails.bodyCount ? `Body count: ${normalizedDetails.bodyCount}` : "",
+      normalizedDetails.location ? `Location: ${normalizedDetails.location}` : "",
+    ].filter(Boolean);
+    summary.textContent = summaryParts.length ? summaryParts.join(" - ") : "Details added";
+
+    item.append(title, summary);
+    encounterDraftList.append(item);
+  });
 }
 
 function getEncounterDialogDetailsForSave() {
@@ -2306,7 +2337,6 @@ function normalizeChoice(value, choices, fallback) {
 
 function fillEncounterForm(details) {
   const normalizedDetails = normalizeEncounterDetails(details);
-  renderEncounterDialogTitle();
   encounterBodyCountInput.value = normalizedDetails.bodyCount;
   encounterLocationInput.value = normalizedDetails.location;
   encounterKissSelect.value = normalizedDetails.kiss;
@@ -2318,6 +2348,7 @@ function fillEncounterForm(details) {
   encounterHeSwallowedSelect.value = normalizedDetails.heSwallowedMyCum;
   encounterICameSelect.value = normalizedDetails.iCame;
   encounterHeCameSelect.value = normalizedDetails.heCame;
+  renderEncounterDialogTitle();
 }
 
 function getEncounterDetailsFromForm() {
