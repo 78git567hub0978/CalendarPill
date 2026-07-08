@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v202";
+const APP_VERSION = "v203";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -731,9 +731,12 @@ function renderEncounterDetails(loggedAt) {
       const description = document.createElement("dd");
       const valueText = value || "Not entered";
 
-      term.textContent = label;
+      term.textContent = `${label}:`;
       description.textContent = valueText;
-      if (valueText === "Yes") description.classList.add("is-yes");
+      if (valueText === "Yes") {
+        term.classList.add("is-yes");
+        description.classList.add("is-yes");
+      }
       detailList.append(term, description);
     });
 
