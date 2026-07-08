@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v184";
+const APP_VERSION = "v185";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -1952,10 +1952,12 @@ function getLogSexStatus(entry) {
 }
 
 function appendHadSexNote(notes) {
-  const note = "Had sex today.";
+  const note = "Had encounter today.";
+  const oldNote = "Had sex today.";
   const trimmedNotes = notes.trim();
   if (!trimmedNotes) return note;
   if (trimmedNotes.includes(note)) return trimmedNotes;
+  if (trimmedNotes.includes(oldNote)) return trimmedNotes.replaceAll(oldNote, note);
   return `${trimmedNotes}\n${note}`;
 }
 
