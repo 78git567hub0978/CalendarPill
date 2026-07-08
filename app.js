@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v215";
+const APP_VERSION = "v225";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -92,11 +92,14 @@ const editDoseIconButton = document.querySelector("#editDoseIconButton");
 const editDialog = document.querySelector("#editDialog");
 const editConfirmPanel = document.querySelector("#editConfirmPanel");
 const editForm = document.querySelector("#editForm");
+const editFormTitle = document.querySelector("#editFormTitle");
 const backEditDoseButton = document.querySelector("#backEditDoseButton");
 const editNoButton = document.querySelector("#editNoButton");
 const editYesButton = document.querySelector("#editYesButton");
 const editCancelButton = document.querySelector("#editCancelButton");
-const editClearButton = document.querySelector("#editClearButton");
+const clearDoseDialog = document.querySelector("#clearDoseDialog");
+const cancelClearDoseButton = document.querySelector("#cancelClearDoseButton");
+const confirmClearDoseButton = document.querySelector("#confirmClearDoseButton");
 const sexDialog = document.querySelector("#sexDialog");
 const didNotHaveSexButton = document.querySelector("#didNotHaveSexButton");
 const hadSexButton = document.querySelector("#hadSexButton");
@@ -118,6 +121,8 @@ const encounterISwallowedSelect = document.querySelector("#encounterISwallowedSe
 const encounterHeSwallowedSelect = document.querySelector("#encounterHeSwallowedSelect");
 const encounterICameSelect = document.querySelector("#encounterICameSelect");
 const encounterHeCameSelect = document.querySelector("#encounterHeCameSelect");
+const encounterNotesInput = document.querySelector("#encounterNotesInput");
+const encounterLineNoteInputs = Array.from(document.querySelectorAll("[data-encounter-note]"));
 const editTimeToggleButton = document.querySelector("#editTimeToggleButton");
 const editTimeField = document.querySelector("#editTimeField");
 const editHourWheel = document.querySelector("#editHourWheel");
@@ -197,6 +202,7 @@ let isEditNotesOpen = false;
 let isPillsTakenWheelOpen = false;
 let editSexStatus = "";
 let editEncounterDetails = [];
+let activeEditSection = "";
 let encounterDialogDraftDetails = [];
 let encounterDialogSourceDetails = [];
 let encounterDialogEditIndex = 0;
@@ -240,30 +246,33 @@ markTakenButton.addEventListener("click", handleMarkButtonClick);
 editDoseIconButton.addEventListener("click", openSelectedDoseEditor);
 editEncounterIconButton.addEventListener("click", openEncounterDetailsEditor);
 editDialog.addEventListener("click", closeEditDialogOnBackdrop);
-backEditDoseButton.addEventListener("click", () => closeEditDialog(false));
+backEditDoseButton.addEventListener("click", handleEditDoseBack);
 editNoButton.addEventListener("click", () => closeEditDialog(false));
 editYesButton.addEventListener("click", showEditForm);
 editCancelButton.addEventListener("click", closeEditDialog);
-editClearButton.addEventListener("click", clearEditedLogEntry);
+clearDoseDialog.addEventListener("click", closeClearDoseDialogOnBackdrop);
+cancelClearDoseButton.addEventListener("click", closeClearDoseDialog);
+confirmClearDoseButton.addEventListener("click", clearSelectedLogEntry);
 didNotHaveSexButton.addEventListener("click", () => saveSexStatusForActiveDate("did-not"));
 hadSexButton.addEventListener("click", openActiveDateEncounterDetails);
+encounterDialog.addEventListener("click", closeEncounterDialogOnBackdrop);
 encounterForm.addEventListener("submit", saveEncounterDetails);
 backEncounterButton.addEventListener("click", closeEncounterDialog);
 encounterCancelButton.addEventListener("click", closeEncounterDialog);
 addEncounterButton.addEventListener("click", addEncounterDraft);
 editForm.addEventListener("submit", saveEditedLogEntry);
-editTimeToggleButton.addEventListener("click", toggleEditTimeField);
+editTimeToggleButton.addEventListener("click", openEditTimeSection);
 saveTimeButton.addEventListener("click", saveEditedLogEntry);
-editPillsToggleButton.addEventListener("click", toggleEditPillsField);
-editNotesToggleButton.addEventListener("click", toggleEditNotesField);
+editPillsToggleButton.addEventListener("click", openEditPillsSection);
+editNotesToggleButton.addEventListener("click", openEditNotesSection);
 saveNotesButton.addEventListener("click", saveEditedLogEntry);
 pillsTakenButton.addEventListener("click", togglePillsTakenWheel);
 savePillsButton.addEventListener("click", saveEditedLogEntry);
 editHadSexButton.addEventListener("click", () => setEditSexStatus("had"));
-editHivTestButton.addEventListener("click", toggleEditHivTest);
+editHivTestButton.addEventListener("click", openEditHivSection);
 editHivLocationSelect.addEventListener("change", updateEditHivLocation);
 saveHivButton.addEventListener("click", saveEditedLogEntry);
-refillToggleButton.addEventListener("click", toggleEditRefillStart);
+refillToggleButton.addEventListener("click", openEditRefillSection);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 saveRefillButton.addEventListener("click", saveEditedLogEntry);
 openSettingsButton.addEventListener("click", openScheduleDialog);
@@ -745,14 +754,18 @@ function renderEncounterDetails(loggedAt) {
     group.className = "encounter-detail-group";
     heading.textContent = `Encounter ${index + 1}`;
 
-    getEncounterDetailRows(details).forEach(([label, value]) => {
+    getEncounterDetailRows(details).forEach(([label, value, note]) => {
       const term = document.createElement("dt");
       const description = document.createElement("dd");
       const valueText = value || "Not entered";
 
       term.textContent = `${label}:`;
-      description.textContent = valueText;
-      if (valueText === "Yes" || (["Body count", "Location"].includes(label) && valueText !== "Not entered")) {
+      description.textContent = note ? `${valueText} - ${note}` : valueText;
+      if (
+        valueText === "Yes" ||
+        (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
+        (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered")
+      ) {
         term.classList.add("is-yes");
         description.classList.add("is-yes");
       }
@@ -766,17 +779,18 @@ function renderEncounterDetails(loggedAt) {
 
 function getEncounterDetailRows(details) {
   return [
-    ["Body count", details.bodyCount],
-    ["Location", details.location],
-    ["Kiss", details.kiss],
-    ["I sucked him", details.iSuckedHim],
-    ["He sucked me", details.heSuckedMe],
-    ["I fucked him", details.iFuckedHim],
-    ["He fucked me", details.heFuckedMe],
-    ["I swallowed his cum", details.iSwallowedHisCum],
-    ["He swallowed my cum", details.heSwallowedMyCum],
-    ["I came", details.iCame],
-    ["He came", details.heCame],
+    ["Body count", details.bodyCount, getEncounterLineNote(details, "bodyCount")],
+    ["Location", details.location, getEncounterLineNote(details, "location")],
+    ["Kiss", details.kiss, getEncounterLineNote(details, "kiss")],
+    ["I sucked him", details.iSuckedHim, getEncounterLineNote(details, "iSuckedHim")],
+    ["He sucked me", details.heSuckedMe, getEncounterLineNote(details, "heSuckedMe")],
+    ["I fucked him", details.iFuckedHim, getEncounterLineNote(details, "iFuckedHim")],
+    ["He fucked me", details.heFuckedMe, getEncounterLineNote(details, "heFuckedMe")],
+    ["I swallowed his cum", details.iSwallowedHisCum, getEncounterLineNote(details, "iSwallowedHisCum")],
+    ["He swallowed my cum", details.heSwallowedMyCum, getEncounterLineNote(details, "heSwallowedMyCum")],
+    ["I came", details.iCame, getEncounterLineNote(details, "iCame")],
+    ["He came", details.heCame, getEncounterLineNote(details, "heCame")],
+    ["Notes", details.notes],
   ];
 }
 
@@ -1246,8 +1260,16 @@ function closeEncounterDialog() {
   unlockPageScrollIfNoDialog();
 }
 
+function closeEncounterDialogOnBackdrop(event) {
+  if (event.target === encounterDialog) {
+    closeEncounterDialog();
+  }
+}
+
 async function saveEncounterDetails(event) {
   event.preventDefault();
+  if (!validateEncounterForm()) return;
+
   const details = getEncounterDialogDetailsForSave();
 
   if (encounterDialogMode === "active-date") {
@@ -1268,12 +1290,22 @@ async function saveEncounterDetails(event) {
 }
 
 function addEncounterDraft() {
+  if (!validateEncounterForm()) return;
+
   encounterDialogDraftDetails = [
     ...encounterDialogDraftDetails,
     getEncounterDetailsFromForm(),
   ];
   encounterDialogEditIndex += 1;
   fillEncounterForm(encounterDialogSourceDetails[encounterDialogEditIndex] || getDefaultEncounterDetails());
+}
+
+function validateEncounterForm() {
+  if (encounterLocationInput.value.trim()) return true;
+
+  encounterLocationInput.focus();
+  encounterLocationInput.reportValidity();
+  return false;
 }
 
 function renderEncounterDialogTitle() {
@@ -1292,8 +1324,17 @@ function renderEncounterDraftList() {
     const item = document.createElement("div");
     item.className = "encounter-draft-item";
 
+    const header = document.createElement("div");
+    header.className = "encounter-draft-item__header";
+
     const title = document.createElement("strong");
     title.textContent = `Encounter ${index + 1}`;
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "encounter-delete-button";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => deleteEncounterDraft(index));
 
     const summary = document.createElement("span");
     const summaryParts = [
@@ -1302,9 +1343,38 @@ function renderEncounterDraftList() {
     ].filter(Boolean);
     summary.textContent = summaryParts.length ? summaryParts.join(" - ") : "Details added";
 
-    item.append(title, summary);
+    header.append(title, deleteButton);
+    item.append(header, summary);
     encounterDraftList.append(item);
   });
+}
+
+async function deleteEncounterDraft(indexToDelete) {
+  const details = getEncounterDialogDetailsForSave();
+  const remainingDetails = details.filter((_, index) => index !== indexToDelete);
+
+  if (!remainingDetails.length) {
+    await saveEmptyEncounterDetails();
+    return;
+  }
+
+  const nextEditIndex = Math.min(indexToDelete, remainingDetails.length - 1);
+  encounterDialogDraftDetails = remainingDetails.slice(0, nextEditIndex);
+  encounterDialogSourceDetails = remainingDetails.slice(nextEditIndex);
+  encounterDialogEditIndex = nextEditIndex;
+  fillEncounterForm(encounterDialogSourceDetails[0]);
+}
+
+async function saveEmptyEncounterDetails() {
+  if (encounterDialogMode === "active-date" || encounterDialogMode === "existing-day") {
+    await saveEncounterDetailsForSelectedDate([]);
+    return;
+  }
+
+  editEncounterDetails = [];
+  editSexStatus = "";
+  closeEncounterDialog();
+  await saveEditedLogEntry();
 }
 
 function getEncounterDialogDetailsForSave() {
@@ -1324,11 +1394,12 @@ async function saveEncounterDetailsForSelectedDate(encounterDetails) {
     return;
   }
 
+  const normalizedEncounterDetails = normalizeEncounterDetailsList(encounterDetails);
   const nextEntry = {
     ...previousEntry,
-    sexStatus: "had",
-    notes: appendHadSexNote(getLogNotes(previousEntry)),
-    encounterDetails,
+    sexStatus: normalizedEncounterDetails.length ? "had" : "",
+    notes: normalizedEncounterDetails.length ? appendHadSexNote(getLogNotes(previousEntry)) : getLogNotes(previousEntry),
+    encounterDetails: normalizedEncounterDetails,
   };
 
   logs[key] = nextEntry;
@@ -1398,9 +1469,28 @@ async function handleMarkButtonClick() {
     return;
   }
 
-  if (logs[key]) return;
+  if (logs[key]) {
+    openClearDoseDialog();
+    return;
+  }
 
   openEditForm(key);
+}
+
+function openClearDoseDialog() {
+  lockPageScroll();
+  clearDoseDialog.hidden = false;
+}
+
+function closeClearDoseDialog() {
+  clearDoseDialog.hidden = true;
+  unlockPageScrollIfNoDialog();
+}
+
+function closeClearDoseDialogOnBackdrop(event) {
+  if (event.target === clearDoseDialog) {
+    closeClearDoseDialog();
+  }
 }
 
 function openSelectedDoseEditor() {
@@ -1432,6 +1522,7 @@ function closeEditDialog(confirmed = false) {
   editDialog.hidden = true;
   editConfirmPanel.hidden = false;
   editForm.hidden = true;
+  activeEditSection = "";
   unlockPageScrollIfNoDialog();
 
   if (editDialogResolver) {
@@ -1444,6 +1535,15 @@ function closeEditDialogOnBackdrop(event) {
   if (event.target === editDialog) {
     closeEditDialog(false);
   }
+}
+
+function handleEditDoseBack() {
+  if (activeEditSection) {
+    closeEditSection();
+    return;
+  }
+
+  closeEditDialog(false);
 }
 
 function lockPageScroll() {
@@ -1459,7 +1559,7 @@ function lockPageScroll() {
 }
 
 function unlockPageScrollIfNoDialog() {
-  if (!editDialog.hidden || !sexDialog.hidden || !encounterDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden || !postActionsDialog.hidden) return;
+  if (!editDialog.hidden || !clearDoseDialog.hidden || !sexDialog.hidden || !encounterDialog.hidden || !scheduleDialog.hidden || !feedDialog.hidden || !postActionsDialog.hidden) return;
 
   document.body.classList.remove("is-dialog-open");
   document.body.style.position = "";
@@ -1491,6 +1591,7 @@ function fillEditForm(key) {
   editRefillStart = isRefillStart(entry);
   editStartingPills = getLogStartingPills(entry) || 30;
   isRefillPillsWheelOpen = false;
+  activeEditSection = "";
   setEditTimeFromDate(takenAt);
   editNotesInput.value = entry ? getLogNotes(entry) : "";
   renderEditTimeControls();
@@ -1500,6 +1601,7 @@ function fillEditForm(key) {
   renderEditSexControls();
   renderEditHivTestControls();
   renderRefillControls();
+  renderEditSection();
 }
 
 function getDefaultEditTime(date) {
@@ -1564,19 +1666,21 @@ async function saveEditedLogEntry(event) {
   }
 }
 
-async function clearEditedLogEntry() {
-  if (!canLogDate(editingBaseDate)) return;
+async function clearSelectedLogEntry() {
+  const key = toKey(selectedDate);
+  if (!canLogDate(selectedDate)) return;
   hideAppError();
 
-  const previousEntry = logs[editingKey];
-  delete logs[editingKey];
+  const previousEntry = logs[key];
+  delete logs[key];
 
   try {
-    await deleteLogFromFirestore(editingKey);
-    closeEditDialog(true);
+    await deleteLogFromFirestore(key);
+    closeClearDoseDialog();
     render();
   } catch (error) {
-    if (previousEntry) logs[editingKey] = previousEntry;
+    if (previousEntry) logs[key] = previousEntry;
+    closeClearDoseDialog();
     showAppError("Could not clear this dose. Please try again.");
     console.error(error);
     render();
@@ -1600,14 +1704,63 @@ function getEditedTime() {
   };
 }
 
-function toggleEditTimeField() {
-  isEditTimeOpen = !isEditTimeOpen;
+function closeEditSection() {
+  activeEditSection = "";
+  isEditTimeOpen = false;
+  isEditPillsOpen = false;
+  isEditNotesOpen = false;
+  isPillsTakenWheelOpen = false;
+  isRefillPillsWheelOpen = false;
+  renderEditSection();
+  renderEditTimeControls();
+  renderEditPillsControls();
+  renderEditNotesControls();
+  renderEditHivTestControls();
+  renderRefillControls();
+  renderPillsTakenControls();
+}
+
+function renderEditSection() {
+  const sectionTitles = {
+    refill: "New Bottle",
+    time: "Edit time taken",
+    pills: "Edit pills taken",
+    hiv: "HIV Test",
+    notes: "Notes",
+  };
+  const isMenu = activeEditSection === "";
+
+  editFormTitle.textContent = isMenu ? "Edit dose" : sectionTitles[activeEditSection];
+
+  [
+    refillToggleButton,
+    editTimeToggleButton,
+    editPillsToggleButton,
+    editHadSexButton,
+    editHivTestButton,
+    editNotesToggleButton,
+    editCancelButton,
+  ].forEach((element) => {
+    element.hidden = !isMenu;
+  });
+
+  refillPillsField.hidden = activeEditSection !== "refill";
+  editTimeField.hidden = activeEditSection !== "time";
+  editPillsField.hidden = activeEditSection !== "pills";
+  editHivTestField.hidden = activeEditSection !== "hiv";
+  editNotesField.hidden = activeEditSection !== "notes";
+}
+
+function openEditTimeSection() {
+  activeEditSection = "time";
+  isEditTimeOpen = true;
+  renderEditSection();
   renderEditTimeControls();
 }
 
 function renderEditTimeControls() {
-  editTimeField.hidden = !isEditTimeOpen;
-  editTimeToggleButton.classList.toggle("is-active", isEditTimeOpen);
+  editTimeField.hidden = activeEditSection !== "time" || !isEditTimeOpen;
+  editTimeToggleButton.classList.toggle("is-active", activeEditSection === "time");
 
   if (!isEditTimeOpen) return;
 
@@ -1619,16 +1772,17 @@ function renderEditTimeControls() {
   });
 }
 
-function toggleEditPillsField() {
-  isEditPillsOpen = !isEditPillsOpen;
-  if (!isEditPillsOpen) isPillsTakenWheelOpen = false;
+function openEditPillsSection() {
+  activeEditSection = "pills";
+  isEditPillsOpen = true;
+  renderEditSection();
   renderEditPillsControls();
   renderPillsTakenControls();
 }
 
 function renderEditPillsControls() {
-  editPillsField.hidden = !isEditPillsOpen;
-  editPillsToggleButton.classList.toggle("is-active", isEditPillsOpen);
+  editPillsField.hidden = activeEditSection !== "pills" || !isEditPillsOpen;
+  editPillsToggleButton.classList.toggle("is-active", activeEditSection === "pills");
 }
 
 function setEditSexStatus(sexStatus) {
@@ -1650,11 +1804,13 @@ function renderEditSexControls() {
   editHadSexButton.classList.remove("is-active");
 }
 
-function toggleEditHivTest() {
-  editHivTest = !editHivTest;
-  editNotesInput.value = editHivTest
-    ? appendHivTestNote(editNotesInput.value, editHivLocation)
-    : removeHivTestNote(editNotesInput.value);
+function openEditHivSection() {
+  activeEditSection = "hiv";
+  if (!editHivTest) {
+    editHivTest = true;
+    editNotesInput.value = appendHivTestNote(editNotesInput.value, editHivLocation);
+  }
+  renderEditSection();
   renderEditHivTestControls();
 }
 
@@ -1668,18 +1824,20 @@ function updateEditHivLocation() {
 
 function renderEditHivTestControls() {
   editHivTestButton.classList.toggle("is-active", editHivTest);
-  editHivTestField.hidden = !editHivTest;
+  editHivTestField.hidden = activeEditSection !== "hiv" || !editHivTest;
   editHivLocationSelect.value = editHivLocation;
 }
 
-function toggleEditNotesField() {
-  isEditNotesOpen = !isEditNotesOpen;
+function openEditNotesSection() {
+  activeEditSection = "notes";
+  isEditNotesOpen = true;
+  renderEditSection();
   renderEditNotesControls();
 }
 
 function renderEditNotesControls() {
-  editNotesField.hidden = !isEditNotesOpen;
-  editNotesToggleButton.classList.toggle("is-active", isEditNotesOpen);
+  editNotesField.hidden = activeEditSection !== "notes" || !isEditNotesOpen;
+  editNotesToggleButton.classList.toggle("is-active", activeEditSection === "notes");
 }
 
 function togglePillsTakenWheel() {
@@ -1707,9 +1865,10 @@ function renderPillsTakenControls() {
   );
 }
 
-function toggleEditRefillStart() {
-  editRefillStart = !editRefillStart;
-  if (!editRefillStart) isRefillPillsWheelOpen = false;
+function openEditRefillSection() {
+  activeEditSection = "refill";
+  if (!editRefillStart) editRefillStart = true;
+  renderEditSection();
   renderRefillControls();
 }
 
@@ -1718,7 +1877,7 @@ function renderRefillControls() {
   refillToggleButton.textContent = editRefillStart
     ? "This is A New Bottle"
     : "Mark this as New Bottle";
-  refillPillsField.hidden = !editRefillStart;
+  refillPillsField.hidden = activeEditSection !== "refill" || !editRefillStart;
   refillPillsButton.textContent = `Number of pills: ${editStartingPills}`;
   refillPillsWheelWrap.hidden = !isRefillPillsWheelOpen;
 
@@ -2285,6 +2444,24 @@ function getDefaultEncounterDetails() {
     heSwallowedMyCum: "No",
     iCame: "No",
     heCame: "No",
+    notes: "",
+    lineNotes: getDefaultEncounterLineNotes(),
+  };
+}
+
+function getDefaultEncounterLineNotes() {
+  return {
+    bodyCount: "",
+    location: "",
+    kiss: "",
+    iSuckedHim: "",
+    heSuckedMe: "",
+    iFuckedHim: "",
+    heFuckedMe: "",
+    iSwallowedHisCum: "",
+    heSwallowedMyCum: "",
+    iCame: "",
+    heCame: "",
   };
 }
 
@@ -2302,30 +2479,54 @@ function normalizeEncounterDetails(details) {
     heFuckedMe: normalizeChoice(source.heFuckedMe, ["Yes with condom", "Yes bare", "No"], defaults.heFuckedMe),
     iSwallowedHisCum: normalizeChoice(source.iSwallowedHisCum, ["Yes", "No"], defaults.iSwallowedHisCum),
     heSwallowedMyCum: normalizeChoice(source.heSwallowedMyCum, ["Yes", "No"], defaults.heSwallowedMyCum),
-    iCame: normalizeChoice(source.iCame, [
+    iCame: normalizeChoice(source.iCame === "Yes - other" ? "Yes" : source.iCame, [
       "Yes, inside his mouth",
       "Yes, inside his ass with condom",
       "Yes, inside his ass bare",
-      "Yes - other",
+      "Yes",
       "No",
     ], defaults.iCame),
-    heCame: normalizeChoice(source.heCame, [
+    heCame: normalizeChoice(source.heCame === "Yes - other" ? "Yes" : source.heCame, [
       "Yes, inside my mouth",
       "Yes, inside my ass with condom",
       "Yes, inside my ass bare",
-      "Yes - other",
+      "Yes",
       "No",
     ], defaults.heCame),
+    notes: typeof source.notes === "string" ? source.notes.trim() : defaults.notes,
+    lineNotes: normalizeEncounterLineNotes(source.lineNotes),
   };
+}
+
+function normalizeEncounterLineNotes(lineNotes) {
+  const defaults = getDefaultEncounterLineNotes();
+  const source = lineNotes && typeof lineNotes === "object" ? lineNotes : {};
+
+  return Object.fromEntries(
+    Object.keys(defaults).map((key) => [
+      key,
+      typeof source[key] === "string" ? source[key].trim() : "",
+    ])
+  );
+}
+
+function getEncounterLineNote(details, key) {
+  return normalizeEncounterLineNotes(details?.lineNotes)[key] || "";
 }
 
 function normalizeEncounterDetailsList(details) {
   if (Array.isArray(details)) {
-    return details.map(normalizeEncounterDetails);
+    return details.map((detail, index) => ({
+      ...normalizeEncounterDetails(detail),
+      bodyCount: String(index + 1),
+    }));
   }
 
   if (details && typeof details === "object") {
-    return [normalizeEncounterDetails(details)];
+    return [{
+      ...normalizeEncounterDetails(details),
+      bodyCount: "1",
+    }];
   }
 
   return [];
@@ -2337,7 +2538,7 @@ function normalizeChoice(value, choices, fallback) {
 
 function fillEncounterForm(details) {
   const normalizedDetails = normalizeEncounterDetails(details);
-  encounterBodyCountInput.value = normalizedDetails.bodyCount;
+  encounterBodyCountInput.value = String(encounterDialogEditIndex + 1);
   encounterLocationInput.value = normalizedDetails.location;
   encounterKissSelect.value = normalizedDetails.kiss;
   encounterISuckedHimSelect.value = normalizedDetails.iSuckedHim;
@@ -2348,12 +2549,14 @@ function fillEncounterForm(details) {
   encounterHeSwallowedSelect.value = normalizedDetails.heSwallowedMyCum;
   encounterICameSelect.value = normalizedDetails.iCame;
   encounterHeCameSelect.value = normalizedDetails.heCame;
+  encounterNotesInput.value = normalizedDetails.notes;
+  fillEncounterLineNotes(normalizedDetails.lineNotes);
   renderEncounterDialogTitle();
 }
 
 function getEncounterDetailsFromForm() {
   return normalizeEncounterDetails({
-    bodyCount: encounterBodyCountInput.value.trim(),
+    bodyCount: String(encounterDialogEditIndex + 1),
     location: encounterLocationInput.value.trim(),
     kiss: encounterKissSelect.value,
     iSuckedHim: encounterISuckedHimSelect.value,
@@ -2364,7 +2567,25 @@ function getEncounterDetailsFromForm() {
     heSwallowedMyCum: encounterHeSwallowedSelect.value,
     iCame: encounterICameSelect.value,
     heCame: encounterHeCameSelect.value,
+    notes: encounterNotesInput.value.trim(),
+    lineNotes: getEncounterLineNotesFromForm(),
   });
+}
+
+function fillEncounterLineNotes(lineNotes) {
+  const normalizedLineNotes = normalizeEncounterLineNotes(lineNotes);
+  encounterLineNoteInputs.forEach((input) => {
+    input.value = normalizedLineNotes[input.dataset.encounterNote] || "";
+  });
+}
+
+function getEncounterLineNotesFromForm() {
+  return normalizeEncounterLineNotes(Object.fromEntries(
+    encounterLineNoteInputs.map((input) => [
+      input.dataset.encounterNote,
+      input.value.trim(),
+    ])
+  ));
 }
 
 function appendHadSexNote(notes) {

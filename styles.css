@@ -679,6 +679,46 @@ h3 {
   gap: 16px;
 }
 
+.encounter-draft-list {
+  display: grid;
+  gap: 8px;
+}
+
+.encounter-draft-item {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #242424;
+}
+
+.encounter-draft-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.encounter-draft-item strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.encounter-delete-button {
+  flex: none;
+  color: #ff5a5f;
+  background: transparent;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.encounter-draft-item span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .day {
   position: relative;
   display: grid;
@@ -1418,6 +1458,23 @@ h3 {
   gap: 8px;
 }
 
+.encounter-dialog__panel .edit-field {
+  grid-template-columns: minmax(0, 1fr) minmax(92px, 0.72fr);
+  align-items: end;
+}
+
+.encounter-dialog__panel .edit-field span {
+  grid-column: 1 / -1;
+}
+
+.encounter-dialog__panel .encounter-line-note {
+  min-width: 0;
+}
+
+.encounter-dialog__panel .encounter-notes-field {
+  grid-template-columns: 1fr;
+}
+
 .edit-field[hidden],
 .pills-taken-field[hidden] {
   display: none;
@@ -1455,6 +1512,10 @@ h3 {
   color: var(--ink);
   background: #101010;
   font: inherit;
+}
+
+.encounter-line-note::placeholder {
+  color: #777;
 }
 
 .time-wheel-picker {
@@ -1691,19 +1752,6 @@ h3 {
 
 .dialog-action:disabled {
   opacity: 0.58;
-}
-
-.clear-log-action {
-  min-height: 42px;
-  padding: 0 18px;
-  border-radius: 999px;
-  color: #050505;
-  background: #8a8a8a;
-  font-weight: 900;
-}
-
-.clear-log-action:active {
-  background: #777;
 }
 
 @media (max-width: 370px) {

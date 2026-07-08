@@ -117,7 +117,7 @@
             <button class="edit-form-back" id="backEditDoseButton" type="button" aria-label="Back">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
             </button>
-            <h2>Edit dose</h2>
+            <h2 id="editFormTitle">Edit dose</h2>
             <span aria-hidden="true"></span>
           </div>
 
@@ -179,9 +179,17 @@
           <div class="edit-dialog__actions">
             <button id="editCancelButton" class="dialog-action dialog-action--no" type="button">Cancel</button>
           </div>
-
-          <button id="editClearButton" class="clear-log-action" type="button">Mark as not taken</button>
         </form>
+      </div>
+    </div>
+
+    <div class="edit-dialog" id="clearDoseDialog" hidden>
+      <div class="edit-dialog__panel" role="dialog" aria-modal="true" aria-labelledby="clearDoseTitle">
+        <h2 id="clearDoseTitle">Are you sure you want to mark this as not taken?</h2>
+        <div class="edit-dialog__actions">
+          <button id="cancelClearDoseButton" class="dialog-action dialog-action--no" type="button">Cancel</button>
+          <button id="confirmClearDoseButton" class="dialog-action dialog-action--yes" type="button">Yes</button>
+        </div>
       </div>
     </div>
 
@@ -206,14 +214,18 @@
             <span aria-hidden="true"></span>
           </div>
 
+          <div class="encounter-draft-list" id="encounterDraftList" hidden></div>
+
           <label class="edit-field">
             <span>Body count</span>
-            <input id="encounterBodyCountInput" type="number" inputmode="numeric" min="0" step="1">
+            <input id="encounterBodyCountInput" type="number" inputmode="numeric" min="0" step="1" readonly>
+            <input class="encounter-line-note" data-encounter-note="bodyCount" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
             <span>Location</span>
-            <input id="encounterLocationInput" type="text" autocomplete="off">
+            <input id="encounterLocationInput" type="text" autocomplete="off" required>
+            <input class="encounter-line-note" data-encounter-note="location" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -222,6 +234,7 @@
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="kiss" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -230,6 +243,7 @@
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="iSuckedHim" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -238,6 +252,7 @@
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="heSuckedMe" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -247,6 +262,7 @@
               <option value="Yes bare">Yes bare</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="iFuckedHim" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -256,6 +272,7 @@
               <option value="Yes bare">Yes bare</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="heFuckedMe" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -264,6 +281,7 @@
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="iSwallowedHisCum" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -272,6 +290,7 @@
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="heSwallowedMyCum" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -280,9 +299,10 @@
               <option value="Yes, inside his mouth">Yes, inside his mouth</option>
               <option value="Yes, inside his ass with condom">Yes, inside his ass with condom</option>
               <option value="Yes, inside his ass bare">Yes, inside his ass bare</option>
-              <option value="Yes - other">Yes - other</option>
+              <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="iCame" type="text" autocomplete="off" placeholder="Note">
           </label>
 
           <label class="edit-field">
@@ -291,9 +311,15 @@
               <option value="Yes, inside my mouth">Yes, inside my mouth</option>
               <option value="Yes, inside my ass with condom">Yes, inside my ass with condom</option>
               <option value="Yes, inside my ass bare">Yes, inside my ass bare</option>
-              <option value="Yes - other">Yes - other</option>
+              <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
+            <input class="encounter-line-note" data-encounter-note="heCame" type="text" autocomplete="off" placeholder="Note">
+          </label>
+
+          <label class="edit-field encounter-notes-field">
+            <span>Notes</span>
+            <textarea id="encounterNotesInput" rows="4" placeholder="Add notes"></textarea>
           </label>
 
           <button id="addEncounterButton" class="dialog-action add-encounter-action" type="button">Add encounter</button>
