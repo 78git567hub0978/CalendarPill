@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v258";
+const APP_VERSION = "v259";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -770,17 +770,15 @@ function renderEncounterDetails(loggedAt) {
   if (!showDetails) return;
   encounterDetailDate.textContent = fullDateFormatter.format(selectedDate);
 
-  getLogEncounterDetailsList(loggedAt).forEach((details, index) => {
+  getLogEncounterDetailsList(loggedAt).forEach((details) => {
     const group = document.createElement("section");
-    const heading = document.createElement("h4");
     const detailList = document.createElement("dl");
 
     group.className = "encounter-detail-group";
-    heading.textContent = `Encounter ${index + 1}`;
 
     appendEncounterDetailRows(detailList, details);
 
-    group.append(heading, detailList);
+    group.append(detailList);
     encounterDetailList.append(group);
   });
 }
