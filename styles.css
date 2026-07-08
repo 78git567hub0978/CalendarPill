@@ -717,6 +717,10 @@ h3 {
   background: #242424;
 }
 
+.encounter-draft-item.has-location-error {
+  box-shadow: 0 0 0 2px var(--missed);
+}
+
 .encounter-draft-item__header {
   display: flex;
   align-items: center;
@@ -792,6 +796,19 @@ textarea.encounter-draft-value {
 
 .encounter-draft-note.is-empty {
   color: #777;
+}
+
+.encounter-draft-field.has-error .encounter-draft-value {
+  border-color: var(--missed);
+  box-shadow: 0 0 0 2px rgba(224, 76, 80, 0.28);
+}
+
+.encounter-validation-message {
+  margin: 2px 0 -2px;
+  color: var(--missed);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-align: center;
 }
 
 .day {
@@ -1199,6 +1216,10 @@ textarea.encounter-draft-value {
 }
 
 .encounter-detail-panel h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
   padding-right: 34px;
   margin-bottom: 10px;
   color: var(--ink);
@@ -1206,7 +1227,6 @@ textarea.encounter-draft-value {
 }
 
 .encounter-detail-panel h3 span {
-  margin-left: 6px;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 800;

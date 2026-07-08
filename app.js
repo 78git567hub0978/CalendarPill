@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v253";
+const APP_VERSION = "v258";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -52,6 +52,13 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   month: "long",
   day: "numeric",
+  year: "numeric",
+});
+const fullDateFormatter = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
 });
 const monthFormatter = new Intl.DateTimeFormat(undefined, {
   month: "long",
@@ -113,6 +120,7 @@ const encounterForm = document.querySelector("#encounterForm");
 const encounterDialogTitle = document.querySelector("#encounterDialogTitle");
 const encounterEditDate = document.querySelector("#encounterEditDate");
 const encounterDraftList = document.querySelector("#encounterDraftList");
+const encounterValidationMessage = document.querySelector("#encounterValidationMessage");
 const backEncounterButton = document.querySelector("#backEncounterButton");
 const encounterCancelButton = document.querySelector("#encounterCancelButton");
 const addEncounterButton = document.querySelector("#addEncounterButton");
@@ -214,6 +222,7 @@ let encounterDialogDraftDetails = [];
 let encounterDialogSourceDetails = [];
 let encounterDialogEditIndex = 0;
 let encounterDialogMode = "edit";
+let encounterMissingLocationIndex = -1;
 let editHivTest = false;
 let editHivLocation = hivTestLocations[0];
 let editRefillStart = false;
@@ -759,7 +768,7 @@ function renderEncounterDetails(loggedAt) {
   const showDetails = loggedAt && getLogSexStatus(loggedAt) === "had";
   encounterDetailPanel.hidden = !showDetails;
   if (!showDetails) return;
-  encounterDetailDate.textContent = dateFormatter.format(selectedDate);
+  encounterDetailDate.textContent = fullDateFormatter.format(selectedDate);
 
   getLogEncounterDetailsList(loggedAt).forEach((details, index) => {
     const group = document.createElement("section");
@@ -798,7 +807,7 @@ function appendEncounterDetailRows(detailList, details) {
 
     const shouldHighlightValue =
       valueText === "Yes" ||
-      (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
+      (["Body count", "Location", "Notes"].includes(label) && valueText !== "Not entered") ||
       (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered");
 
     if (shouldHighlightValue) {
@@ -935,9 +944,10 @@ function getEncounterEditableRows(details) {
 }
 
 function isGreenEncounterValue(label, valueText) {
+  const hasAnswer = valueText !== "Not entered" && valueText !== "";
   return valueText === "Yes" ||
-    (["Body count", "Location"].includes(label) && valueText !== "Not entered" && valueText !== "") ||
-    (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "");
+    (["Body count", "Location", "Notes"].includes(label) && hasAnswer) ||
+    (["I came", "He came"].includes(label) && valueText !== "No" && hasAnswer);
 }
 
 function getScheduledDoseLine(date) {
@@ -1402,6 +1412,7 @@ function openEncounterDetailsEditor() {
 
 function closeEncounterDialog() {
   encounterDialog.hidden = true;
+  clearEncounterValidationMessage();
   unlockPageScrollIfNoDialog();
 }
 
@@ -1429,7 +1440,7 @@ async function saveEncounterDetails(event) {
 
   editEncounterDetails = normalizeEncounterDetailsList(details);
   editSexStatus = "had";
-  editNotesInput.value = appendHadSexNote(editNotesInput.value);
+  editNotesInput.value = removeAutoEncounterNote(editNotesInput.value);
   closeEncounterDialog();
   await saveEditedLogEntry();
 }
@@ -1446,13 +1457,33 @@ function addEncounterDraft() {
 }
 
 function validateEncounterForm() {
-  const missingLocation = getEncounterDialogDetailsForSave()
-    .some((details) => !details.location.trim());
+  const details = getEncounterDialogDetailsForSave();
+  const missingLocationIndex = details.findIndex((entry) => !entry.location.trim());
 
-  if (!missingLocation) return true;
+  if (missingLocationIndex === -1) {
+    clearEncounterValidationMessage();
+    return true;
+  }
 
-  showAppError("Location is required for every encounter.");
+  encounterMissingLocationIndex = missingLocationIndex;
+  showEncounterValidationMessage(`Location is needed to save Encounter ${missingLocationIndex + 1}.`);
+  renderEncounterDraftList();
+  const missingLocationInput = encounterDraftList.querySelector(
+    `[data-encounter-index="${missingLocationIndex}"][data-encounter-field="location"]`
+  );
+  missingLocationInput?.focus();
   return false;
+}
+
+function showEncounterValidationMessage(message) {
+  encounterValidationMessage.textContent = message;
+  encounterValidationMessage.hidden = false;
+}
+
+function clearEncounterValidationMessage() {
+  encounterMissingLocationIndex = -1;
+  encounterValidationMessage.textContent = "";
+  encounterValidationMessage.hidden = true;
 }
 
 function renderEncounterDialogTitle() {
@@ -1471,6 +1502,7 @@ function renderEncounterDraftList() {
     const normalizedDetails = normalizeEncounterDetails(details);
     const item = document.createElement("div");
     item.className = "encounter-draft-item";
+    if (index === encounterMissingLocationIndex) item.classList.add("has-location-error");
 
     const header = document.createElement("div");
     header.className = "encounter-draft-item__header";
@@ -1504,6 +1536,10 @@ function appendEncounterEditableRows(detailList, details, encounterIndex) {
       : null;
 
     row.className = "encounter-draft-field";
+    if (rowConfig.key === "location") {
+      row.classList.add("is-location-row");
+      if (encounterIndex === encounterMissingLocationIndex) row.classList.add("has-error");
+    }
     if (!noteElement) row.classList.add("has-full-value");
     labelElement.className = "encounter-draft-label";
 
@@ -1523,6 +1559,10 @@ function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
   const value = isNote ? rowConfig.note : rowConfig.value;
 
   control.className = isNote ? "encounter-draft-note" : "encounter-draft-value";
+  if (!isNote) {
+    control.dataset.encounterIndex = String(encounterIndex);
+    control.dataset.encounterField = rowConfig.key;
+  }
   if (isNote) {
     control.type = "text";
     control.placeholder = "Note";
@@ -1545,6 +1585,15 @@ function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
   control.value = value;
   control.addEventListener(!isNote && rowConfig.type === "select" ? "change" : "input", () => {
     updateEncounterDialogDetail(encounterIndex, rowConfig.key, control.value, isNote);
+    if (!isNote) {
+      control.classList.toggle("is-yes", isGreenEncounterValue(rowConfig.label, control.value));
+    }
+    if (!isNote && rowConfig.key === "location" && control.value.trim()) {
+      encounterMissingLocationIndex = -1;
+      encounterValidationMessage.hidden = true;
+      control.closest(".encounter-draft-field")?.classList.remove("has-error");
+      control.closest(".encounter-draft-item")?.classList.remove("has-location-error");
+    }
     if (isNote) {
       control.classList.toggle("is-empty", !control.value.trim());
       control.classList.toggle("is-yes", Boolean(control.value.trim()));
@@ -1621,7 +1670,7 @@ async function saveEncounterDetailsForSelectedDate(encounterDetails) {
   const nextEntry = {
     ...previousEntry,
     sexStatus: normalizedEncounterDetails.length ? "had" : "",
-    notes: normalizedEncounterDetails.length ? appendHadSexNote(getLogNotes(previousEntry)) : getLogNotes(previousEntry),
+    notes: removeAutoEncounterNote(getLogNotes(previousEntry)),
     encounterDetails: normalizedEncounterDetails,
   };
 
@@ -1653,7 +1702,7 @@ async function saveSexStatusForActiveDate(sexStatus, encounterDetails = []) {
   const nextEntry = {
     ...previousEntry,
     sexStatus,
-    notes: sexStatus === "had" ? appendHadSexNote(getLogNotes(previousEntry)) : getLogNotes(previousEntry),
+    notes: removeAutoEncounterNote(getLogNotes(previousEntry)),
     encounterDetails: sexStatus === "had" ? normalizeEncounterDetailsList(encounterDetails) : [],
   };
 
@@ -1845,8 +1894,7 @@ async function saveEditedLogEntry(event) {
   updatedDate.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
-  let editedNotes = editNotesInput.value.trim();
-  if (editSexStatus === "had") editedNotes = appendHadSexNote(editedNotes);
+  let editedNotes = removeAutoEncounterNote(editNotesInput.value);
   if (editHivTest) editedNotes = appendHivTestNote(editedNotes, editHivLocation);
   const entry = createLogEntry(
     updatedDate,
@@ -2584,7 +2632,7 @@ function parseLogEntry(entry) {
 
   return {
     takenAt: Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt,
-    notes: typeof entry?.notes === "string" ? entry.notes : "",
+    notes: removeAutoEncounterNote(typeof entry?.notes === "string" ? entry.notes : ""),
     pillsTaken: normalizePillsTaken(entry?.pillsTaken),
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(entry?.startingPills) : 0,
@@ -2704,7 +2752,7 @@ function createLogEntry(
 ) {
   return {
     takenAt: takenAt.toISOString(),
-    notes,
+    notes: removeAutoEncounterNote(notes),
     pillsTaken: normalizePillsTaken(pillsTaken),
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(startingPills) : 0,
@@ -2895,16 +2943,12 @@ function getEncounterLineNotesFromForm() {
   ));
 }
 
-function appendHadSexNote(notes) {
-  const note = "Had encounter today.";
-  const noteWithoutPeriod = "Had encounter today";
-  const oldNote = "Had sex today.";
-  const trimmedNotes = notes.trim();
-  if (!trimmedNotes) return note;
-  if (trimmedNotes.includes(note)) return trimmedNotes;
-  if (trimmedNotes.includes(noteWithoutPeriod)) return trimmedNotes;
-  if (trimmedNotes.includes(oldNote)) return trimmedNotes.replaceAll(oldNote, note);
-  return `${trimmedNotes}\n${note}`;
+function removeAutoEncounterNote(notes) {
+  return notes
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*(Had encounter today\.?|Had sex today\.?)\s*$/i.test(line))
+    .join("\n")
+    .trim();
 }
 
 function appendHivTestNote(notes, location) {
