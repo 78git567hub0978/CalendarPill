@@ -1645,6 +1645,11 @@ h3 {
   background: var(--accent);
 }
 
+.add-encounter-action {
+  width: 100%;
+  background: #8a8a8a;
+}
+
 .dialog-action:disabled {
   opacity: 0.58;
 }

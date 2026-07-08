@@ -151,8 +151,8 @@
           <div class="edit-field edit-sex-field">
             <span>Encounter</span>
             <div class="edit-sex-actions">
-              <button id="editDidNotHaveSexButton" class="edit-sex-button" type="button">No encounter</button>
-              <button id="editHadSexButton" class="edit-sex-button" type="button">Had encounter</button>
+              <button id="editDidNotHaveSexButton" class="edit-sex-button" type="button">No</button>
+              <button id="editHadSexButton" class="edit-sex-button" type="button">Add Encounter</button>
             </div>
           </div>
 
@@ -186,10 +186,10 @@
 
     <div class="edit-dialog" id="sexDialog" hidden>
       <div class="edit-dialog__panel sex-dialog__panel" role="dialog" aria-modal="true" aria-labelledby="sexDialogTitle">
-        <h2 id="sexDialogTitle">After taking your pill</h2>
+        <h2 id="sexDialogTitle">Encounter</h2>
         <div class="edit-dialog__actions">
-          <button id="didNotHaveSexButton" class="dialog-action dialog-action--no" type="button">No encounter</button>
-          <button id="hadSexButton" class="dialog-action dialog-action--yes" type="button">Had encounter</button>
+          <button id="didNotHaveSexButton" class="dialog-action dialog-action--no" type="button">No</button>
+          <button id="hadSexButton" class="dialog-action dialog-action--yes" type="button">Yes</button>
         </div>
       </div>
     </div>
@@ -197,7 +197,13 @@
     <div class="edit-dialog" id="encounterDialog" hidden>
       <div class="edit-dialog__panel encounter-dialog__panel" role="dialog" aria-modal="true" aria-labelledby="encounterDialogTitle">
         <form class="edit-form" id="encounterForm">
-          <h2 id="encounterDialogTitle">Encounter details</h2>
+          <div class="edit-form-header">
+            <button class="edit-form-back" id="backEncounterButton" type="button" aria-label="Back">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <h2 id="encounterDialogTitle">Encounter details</h2>
+            <span aria-hidden="true"></span>
+          </div>
 
           <label class="edit-field">
             <span>Body count</span>
@@ -288,6 +294,8 @@
               <option value="No">No</option>
             </select>
           </label>
+
+          <button id="addEncounterButton" class="dialog-action add-encounter-action" type="button">Add encounter</button>
 
           <div class="edit-dialog__actions">
             <button id="encounterCancelButton" class="dialog-action dialog-action--no" type="button">Cancel</button>

@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v203";
+const APP_VERSION = "v207";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -101,7 +101,9 @@ const didNotHaveSexButton = document.querySelector("#didNotHaveSexButton");
 const hadSexButton = document.querySelector("#hadSexButton");
 const encounterDialog = document.querySelector("#encounterDialog");
 const encounterForm = document.querySelector("#encounterForm");
+const backEncounterButton = document.querySelector("#backEncounterButton");
 const encounterCancelButton = document.querySelector("#encounterCancelButton");
+const addEncounterButton = document.querySelector("#addEncounterButton");
 const encounterBodyCountInput = document.querySelector("#encounterBodyCountInput");
 const encounterLocationInput = document.querySelector("#encounterLocationInput");
 const encounterKissSelect = document.querySelector("#encounterKissSelect");
@@ -188,6 +190,7 @@ let isEditNotesOpen = false;
 let isPillsTakenWheelOpen = false;
 let editSexStatus = "";
 let editEncounterDetails = [];
+let encounterDialogDraftDetails = [];
 let encounterDialogMode = "edit";
 let editHivTest = false;
 let editHivLocation = hivTestLocations[0];
@@ -235,7 +238,9 @@ editClearButton.addEventListener("click", clearEditedLogEntry);
 didNotHaveSexButton.addEventListener("click", () => saveSexStatusForActiveDate("did-not"));
 hadSexButton.addEventListener("click", openActiveDateEncounterDetails);
 encounterForm.addEventListener("submit", saveEncounterDetails);
+backEncounterButton.addEventListener("click", closeEncounterDialog);
 encounterCancelButton.addEventListener("click", closeEncounterDialog);
+addEncounterButton.addEventListener("click", addEncounterDraft);
 editForm.addEventListener("submit", saveEditedLogEntry);
 editTimeToggleButton.addEventListener("click", toggleEditTimeField);
 editPillsToggleButton.addEventListener("click", toggleEditPillsField);
@@ -733,7 +738,7 @@ function renderEncounterDetails(loggedAt) {
 
       term.textContent = `${label}:`;
       description.textContent = valueText;
-      if (valueText === "Yes") {
+      if (valueText === "Yes" || (["Body count", "Location"].includes(label) && valueText !== "Not entered")) {
         term.classList.add("is-yes");
         description.classList.add("is-yes");
       }
@@ -1194,7 +1199,10 @@ function closeSexDialog() {
 }
 
 function openActiveDateEncounterDetails() {
+  const key = toKey(selectedDate);
+  const entry = logs[key];
   encounterDialogMode = "active-date";
+  encounterDialogDraftDetails = getLogEncounterDetailsList(entry);
   fillEncounterForm(getDefaultEncounterDetails());
   sexDialog.hidden = true;
   lockPageScroll();
@@ -1208,18 +1216,26 @@ function closeEncounterDialog() {
 
 async function saveEncounterDetails(event) {
   event.preventDefault();
-  const details = getEncounterDetailsFromForm();
+  const details = [...encounterDialogDraftDetails, getEncounterDetailsFromForm()];
 
   if (encounterDialogMode === "active-date") {
     await saveSexStatusForActiveDate("had", details);
     return;
   }
 
-  editEncounterDetails = [...editEncounterDetails, normalizeEncounterDetails(details)];
+  editEncounterDetails = normalizeEncounterDetailsList(details);
   closeEncounterDialog();
 }
 
-async function saveSexStatusForActiveDate(sexStatus, encounterDetails = getDefaultEncounterDetails()) {
+function addEncounterDraft() {
+  encounterDialogDraftDetails = [
+    ...encounterDialogDraftDetails,
+    getEncounterDetailsFromForm(),
+  ];
+  fillEncounterForm(getDefaultEncounterDetails());
+}
+
+async function saveSexStatusForActiveDate(sexStatus, encounterDetails = []) {
   const key = toKey(selectedDate);
   const previousEntry = logs[key];
 
@@ -1233,9 +1249,7 @@ async function saveSexStatusForActiveDate(sexStatus, encounterDetails = getDefau
     ...previousEntry,
     sexStatus,
     notes: sexStatus === "had" ? appendHadSexNote(getLogNotes(previousEntry)) : getLogNotes(previousEntry),
-    encounterDetails: sexStatus === "had"
-      ? [...getLogEncounterDetailsList(previousEntry), normalizeEncounterDetails(encounterDetails)]
-      : [],
+    encounterDetails: sexStatus === "had" ? normalizeEncounterDetailsList(encounterDetails) : [],
   };
 
   logs[key] = nextEntry;
@@ -1511,6 +1525,7 @@ function setEditSexStatus(sexStatus) {
   if (sexStatus === "had") {
     editNotesInput.value = appendHadSexNote(editNotesInput.value);
     encounterDialogMode = "edit";
+    encounterDialogDraftDetails = editEncounterDetails;
     fillEncounterForm(getDefaultEncounterDetails());
     lockPageScroll();
     encounterDialog.hidden = false;
