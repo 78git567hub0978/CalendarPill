@@ -683,6 +683,10 @@ h3 {
   display: none;
 }
 
+.encounter-dialog__panel .edit-form > label.edit-field {
+  display: none;
+}
+
 .encounter-draft-list {
   display: grid;
   gap: 8px;
@@ -741,8 +745,6 @@ h3 {
 .encounter-draft-value,
 .encounter-draft-note {
   min-height: 40px;
-  display: flex;
-  align-items: center;
   min-width: 0;
   padding: 9px 11px;
   border: 1px solid var(--line);
@@ -752,11 +754,22 @@ h3 {
   font-size: 0.9rem;
   line-height: 1.2;
   overflow-wrap: anywhere;
+  font: inherit;
 }
 
 .encounter-draft-value.is-yes {
   color: var(--accent);
   font-weight: 900;
+}
+
+textarea.encounter-draft-value {
+  grid-column: 1 / -1;
+  min-height: 94px;
+  resize: vertical;
+}
+
+.encounter-draft-field.has-full-value {
+  grid-template-columns: 1fr;
 }
 
 .encounter-draft-note.is-empty {

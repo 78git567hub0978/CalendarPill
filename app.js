@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v230";
+const APP_VERSION = "v231";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -203,6 +203,7 @@ let isPillsTakenWheelOpen = false;
 let editSexStatus = "";
 let editEncounterDetails = [];
 let activeEditSection = "";
+let encounterDialogDetails = [];
 let encounterDialogDraftDetails = [];
 let encounterDialogSourceDetails = [];
 let encounterDialogEditIndex = 0;
@@ -798,6 +799,120 @@ function getEncounterDetailRows(details) {
   ];
 }
 
+function getEncounterEditableRows(details) {
+  return [
+    {
+      label: "Body count",
+      key: "bodyCount",
+      type: "number",
+      value: details.bodyCount,
+      note: getEncounterLineNote(details, "bodyCount"),
+      noteKey: "bodyCount",
+    },
+    {
+      label: "Location",
+      key: "location",
+      type: "text",
+      value: details.location,
+      note: getEncounterLineNote(details, "location"),
+      noteKey: "location",
+    },
+    {
+      label: "Kiss",
+      key: "kiss",
+      type: "select",
+      choices: ["Yes", "No"],
+      value: details.kiss,
+      note: getEncounterLineNote(details, "kiss"),
+      noteKey: "kiss",
+    },
+    {
+      label: "I sucked him",
+      key: "iSuckedHim",
+      type: "select",
+      choices: ["Yes", "No"],
+      value: details.iSuckedHim,
+      note: getEncounterLineNote(details, "iSuckedHim"),
+      noteKey: "iSuckedHim",
+    },
+    {
+      label: "He sucked me",
+      key: "heSuckedMe",
+      type: "select",
+      choices: ["Yes", "No"],
+      value: details.heSuckedMe,
+      note: getEncounterLineNote(details, "heSuckedMe"),
+      noteKey: "heSuckedMe",
+    },
+    {
+      label: "I fucked him",
+      key: "iFuckedHim",
+      type: "select",
+      choices: ["Yes with condom", "Yes bare", "No"],
+      value: details.iFuckedHim,
+      note: getEncounterLineNote(details, "iFuckedHim"),
+      noteKey: "iFuckedHim",
+    },
+    {
+      label: "He fucked me",
+      key: "heFuckedMe",
+      type: "select",
+      choices: ["Yes with condom", "Yes bare", "No"],
+      value: details.heFuckedMe,
+      note: getEncounterLineNote(details, "heFuckedMe"),
+      noteKey: "heFuckedMe",
+    },
+    {
+      label: "I swallowed his cum",
+      key: "iSwallowedHisCum",
+      type: "select",
+      choices: ["Yes", "No"],
+      value: details.iSwallowedHisCum,
+      note: getEncounterLineNote(details, "iSwallowedHisCum"),
+      noteKey: "iSwallowedHisCum",
+    },
+    {
+      label: "He swallowed my cum",
+      key: "heSwallowedMyCum",
+      type: "select",
+      choices: ["Yes", "No"],
+      value: details.heSwallowedMyCum,
+      note: getEncounterLineNote(details, "heSwallowedMyCum"),
+      noteKey: "heSwallowedMyCum",
+    },
+    {
+      label: "I came",
+      key: "iCame",
+      type: "select",
+      choices: ["Yes, inside his mouth", "Yes, inside his ass with condom", "Yes, inside his ass bare", "Yes", "No"],
+      value: details.iCame,
+      note: getEncounterLineNote(details, "iCame"),
+      noteKey: "iCame",
+    },
+    {
+      label: "He came",
+      key: "heCame",
+      type: "select",
+      choices: ["Yes, inside my mouth", "Yes, inside my ass with condom", "Yes, inside my ass bare", "Yes", "No"],
+      value: details.heCame,
+      note: getEncounterLineNote(details, "heCame"),
+      noteKey: "heCame",
+    },
+    {
+      label: "Notes",
+      key: "notes",
+      type: "textarea",
+      value: details.notes,
+    },
+  ];
+}
+
+function isGreenEncounterValue(label, valueText) {
+  return valueText === "Yes" ||
+    (["Body count", "Location"].includes(label) && valueText !== "Not entered" && valueText !== "") ||
+    (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "");
+}
+
 function getScheduledDoseLine(date) {
   const scheduledAt = getScheduledDoseTime(date);
   if (!scheduledAt) return null;
@@ -1234,10 +1349,10 @@ function openActiveDateEncounterDetails() {
   const key = toKey(selectedDate);
   const entry = logs[key];
   encounterDialogMode = "active-date";
-  encounterDialogDraftDetails = getLogEncounterDetailsList(entry);
-  encounterDialogSourceDetails = [];
-  encounterDialogEditIndex = encounterDialogDraftDetails.length;
-  fillEncounterForm(getDefaultEncounterDetails());
+  encounterDialogDetails = getLogEncounterDetailsList(entry);
+  if (!encounterDialogDetails.length) encounterDialogDetails = [getDefaultEncounterDetails()];
+  encounterDialogEditIndex = encounterDialogDetails.length - 1;
+  renderEncounterDialogTitle();
   sexDialog.hidden = true;
   lockPageScroll();
   encounterDialog.hidden = false;
@@ -1251,10 +1366,9 @@ function openEncounterDetailsEditor() {
   if (!details.length) return;
 
   encounterDialogMode = "existing-day";
-  encounterDialogDraftDetails = [];
-  encounterDialogSourceDetails = details;
+  encounterDialogDetails = details;
   encounterDialogEditIndex = 0;
-  fillEncounterForm(details[0]);
+  renderEncounterDialogTitle();
   lockPageScroll();
   encounterDialog.hidden = false;
 }
@@ -1296,19 +1410,21 @@ async function saveEncounterDetails(event) {
 function addEncounterDraft() {
   if (!validateEncounterForm()) return;
 
-  encounterDialogDraftDetails = [
-    ...encounterDialogDraftDetails,
-    getEncounterDetailsFromForm(),
-  ];
-  encounterDialogEditIndex += 1;
-  fillEncounterForm(encounterDialogSourceDetails[encounterDialogEditIndex] || getDefaultEncounterDetails());
+  encounterDialogDetails = normalizeEncounterDetailsList([
+    ...encounterDialogDetails,
+    getDefaultEncounterDetails(),
+  ]);
+  encounterDialogEditIndex = encounterDialogDetails.length - 1;
+  renderEncounterDialogTitle();
 }
 
 function validateEncounterForm() {
-  if (encounterLocationInput.value.trim()) return true;
+  const missingLocation = getEncounterDialogDetailsForSave()
+    .some((details) => !details.location.trim());
 
-  encounterLocationInput.focus();
-  encounterLocationInput.reportValidity();
+  if (!missingLocation) return true;
+
+  showAppError("Location is required for every encounter.");
   return false;
 }
 
@@ -1342,7 +1458,7 @@ function renderEncounterDraftList() {
 
     const detailList = document.createElement("div");
     detailList.className = "encounter-draft-details";
-    appendEncounterPreviewRows(detailList, normalizedDetails);
+    appendEncounterEditableRows(detailList, normalizedDetails, index);
 
     header.append(title, deleteButton);
     item.append(header, detailList);
@@ -1350,53 +1466,94 @@ function renderEncounterDraftList() {
   });
 }
 
-function appendEncounterPreviewRows(detailList, details) {
-  getEncounterDetailRows(details).forEach(([label, value, note]) => {
+function appendEncounterEditableRows(detailList, details, encounterIndex) {
+  getEncounterEditableRows(details).forEach((rowConfig) => {
     const row = document.createElement("div");
     const labelElement = document.createElement("span");
-    const valueElement = document.createElement("span");
-    const noteElement = document.createElement("span");
-    const valueText = value || "Not entered";
-    const noteText = note || "";
+    const valueElement = createEncounterEditableControl(rowConfig, encounterIndex, false);
+    const noteElement = rowConfig.noteKey
+      ? createEncounterEditableControl(rowConfig, encounterIndex, true)
+      : null;
 
     row.className = "encounter-draft-field";
+    if (!noteElement) row.classList.add("has-full-value");
     labelElement.className = "encounter-draft-label";
-    valueElement.className = "encounter-draft-value";
-    noteElement.className = "encounter-draft-note";
 
-    labelElement.textContent = label;
-    valueElement.textContent = valueText;
-    noteElement.textContent = noteText || "Note";
-
-    if (
-      valueText === "Yes" ||
-      (["Body count", "Location"].includes(label) && valueText !== "Not entered") ||
-      (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered")
-    ) {
-      valueElement.classList.add("is-yes");
-    }
-
-    if (!noteText) noteElement.classList.add("is-empty");
-
-    row.append(labelElement, valueElement, noteElement);
+    labelElement.textContent = rowConfig.label;
+    row.append(labelElement, valueElement);
+    if (noteElement) row.append(noteElement);
     detailList.append(row);
   });
 }
 
+function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
+  const control = rowConfig.type === "select"
+    ? document.createElement("select")
+    : document.createElement(rowConfig.type === "textarea" ? "textarea" : "input");
+  const value = isNote ? rowConfig.note : rowConfig.value;
+
+  control.className = isNote ? "encounter-draft-note" : "encounter-draft-value";
+  if (rowConfig.type === "number") {
+    control.type = "number";
+    control.readOnly = true;
+  } else if (rowConfig.type !== "select" && rowConfig.type !== "textarea") {
+    control.type = "text";
+  }
+  if (rowConfig.type === "textarea") control.rows = 4;
+  if (rowConfig.key === "location") control.required = true;
+
+  if (rowConfig.type === "select") {
+    rowConfig.choices.forEach((choice) => {
+      const option = document.createElement("option");
+      option.value = choice;
+      option.textContent = choice;
+      control.append(option);
+    });
+  } else if (isNote) {
+    control.placeholder = "Note";
+  }
+
+  control.value = value;
+  control.addEventListener(rowConfig.type === "select" ? "change" : "input", () => {
+    updateEncounterDialogDetail(encounterIndex, rowConfig.key, control.value, isNote);
+  });
+
+  if (!isNote && isGreenEncounterValue(rowConfig.label, control.value)) {
+    control.classList.add("is-yes");
+  }
+  if (isNote && !control.value) control.classList.add("is-empty");
+
+  return control;
+}
+
+function updateEncounterDialogDetail(encounterIndex, key, value, isNote) {
+  encounterDialogDetails = normalizeEncounterDetailsList(encounterDialogDetails);
+  const details = encounterDialogDetails[encounterIndex] || getDefaultEncounterDetails();
+
+  if (isNote) {
+    details.lineNotes = {
+      ...normalizeEncounterLineNotes(details.lineNotes),
+      [key]: value.trim(),
+    };
+  } else {
+    details[key] = value.trim();
+  }
+
+  encounterDialogDetails[encounterIndex] = normalizeEncounterDetails(details);
+}
+
 async function deleteEncounterDraft(indexToDelete) {
-  const details = getEncounterDialogDetailsForSave();
-  const remainingDetails = details.filter((_, index) => index !== indexToDelete);
+  const remainingDetails = getEncounterDialogDetailsForSave()
+    .filter((_, index) => index !== indexToDelete);
 
   if (!remainingDetails.length) {
     await saveEmptyEncounterDetails();
     return;
   }
 
-  const nextEditIndex = Math.min(indexToDelete, remainingDetails.length - 1);
-  encounterDialogDraftDetails = remainingDetails.slice(0, nextEditIndex);
-  encounterDialogSourceDetails = remainingDetails.slice(nextEditIndex);
-  encounterDialogEditIndex = nextEditIndex;
-  fillEncounterForm(encounterDialogSourceDetails[0]);
+  encounterDialogDetails = normalizeEncounterDetailsList(remainingDetails);
+  encounterDialogEditIndex = Math.min(indexToDelete, encounterDialogDetails.length - 1);
+  renderEncounterDialogTitle();
 }
 
 async function saveEmptyEncounterDetails() {
@@ -1412,11 +1569,7 @@ async function saveEmptyEncounterDetails() {
 }
 
 function getEncounterDialogDetailsForSave() {
-  return normalizeEncounterDetailsList([
-    ...encounterDialogDraftDetails,
-    getEncounterDetailsFromForm(),
-    ...encounterDialogSourceDetails.slice(encounterDialogEditIndex + 1),
-  ]);
+  return normalizeEncounterDetailsList(encounterDialogDetails);
 }
 
 async function saveEncounterDetailsForSelectedDate(encounterDetails) {
@@ -1821,10 +1974,11 @@ function renderEditPillsControls() {
 
 function openEditEncountersWindow() {
   encounterDialogMode = "edit";
-  encounterDialogDraftDetails = [];
-  encounterDialogSourceDetails = editEncounterDetails;
+  encounterDialogDetails = editEncounterDetails.length
+    ? normalizeEncounterDetailsList(editEncounterDetails)
+    : [getDefaultEncounterDetails()];
   encounterDialogEditIndex = 0;
-  fillEncounterForm(editEncounterDetails[0] || getDefaultEncounterDetails());
+  renderEncounterDialogTitle();
   lockPageScroll();
   encounterDialog.hidden = false;
   renderEditSexControls();
