@@ -173,6 +173,17 @@
 
           <button id="editDoxycyclineButton" class="edit-option-button" type="button">Took 200mg doxycycline</button>
 
+          <label class="edit-field" id="editDoxycyclineField" hidden>
+            <span>Time</span>
+            <div class="time-wheel-picker" aria-label="Choose doxycycline time">
+              <div class="wheel-picker" id="doxycyclineHourWheel" aria-label="Choose hour"></div>
+              <div class="wheel-picker" id="doxycyclineMinuteWheel" aria-label="Choose minute"></div>
+            </div>
+            <span>Notes</span>
+            <textarea id="doxycyclineNotesInput" rows="4" placeholder="Add notes"></textarea>
+            <button id="saveDoxycyclineButton" class="inline-save-action" type="button">Save</button>
+          </label>
+
           <button id="editNotesToggleButton" class="edit-option-button" type="button">Notes</button>
 
           <label class="edit-field" id="editNotesField" hidden>

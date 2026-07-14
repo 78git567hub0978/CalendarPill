@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v268";
+const APP_VERSION = "v271";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -159,6 +159,11 @@ const editHivTestField = document.querySelector("#editHivTestField");
 const editHivLocationSelect = document.querySelector("#editHivLocationSelect");
 const saveHivButton = document.querySelector("#saveHivButton");
 const editDoxycyclineButton = document.querySelector("#editDoxycyclineButton");
+const editDoxycyclineField = document.querySelector("#editDoxycyclineField");
+const doxycyclineHourWheel = document.querySelector("#doxycyclineHourWheel");
+const doxycyclineMinuteWheel = document.querySelector("#doxycyclineMinuteWheel");
+const doxycyclineNotesInput = document.querySelector("#doxycyclineNotesInput");
+const saveDoxycyclineButton = document.querySelector("#saveDoxycyclineButton");
 const refillToggleButton = document.querySelector("#refillToggleButton");
 const refillPillsField = document.querySelector("#refillPillsField");
 const refillPillsButton = document.querySelector("#refillPillsButton");
@@ -228,6 +233,10 @@ let encounterMissingLocationIndex = -1;
 let editHivTest = false;
 let editHivLocation = hivTestLocations[0];
 let editDoxycyclineTaken = false;
+let editDoxycyclineHour = 7;
+let editDoxycyclineMinute = 0;
+let editDoxycyclineNotes = "";
+let isEditDoxycyclineOpen = false;
 let editRefillStart = false;
 let editStartingPills = 30;
 let isRefillPillsWheelOpen = false;
@@ -290,7 +299,8 @@ savePillsButton.addEventListener("click", saveEditedLogEntry);
 editHadSexButton.addEventListener("click", openEditEncountersWindow);
 editHivTestButton.addEventListener("click", openEditHivSection);
 saveHivButton.addEventListener("click", saveEditHivTest);
-editDoxycyclineButton.addEventListener("click", toggleEditDoxycycline);
+editDoxycyclineButton.addEventListener("click", openEditDoxycyclineSection);
+saveDoxycyclineButton.addEventListener("click", saveEditedLogEntry);
 refillToggleButton.addEventListener("click", openEditRefillSection);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 saveRefillButton.addEventListener("click", saveEditedLogEntry);
@@ -754,14 +764,16 @@ function renderSelectedMeta(loggedAt, date) {
     const ended = isEndedDate(date);
     const notes = getLogNotes(loggedAt);
     const statusLine = document.createElement("span");
-    const notesLine = document.createElement("span");
     statusLine.textContent = ended ? "PreP Stopped" : missed ? "Missed" : "No pill logged for this day.";
-    notesLine.className = "notes-detail";
-    notesLine.textContent = notes ? `Notes: ${notes}` : "No notes";
     selectedMeta.className = missed || ended ? "missed-detail" : "";
     if (scheduledLine) selectedMeta.append(scheduledLine);
     selectedMeta.append(statusLine);
-    selectedMeta.append(notesLine);
+    if (notes) {
+      const notesLine = document.createElement("span");
+      notesLine.className = "notes-detail";
+      notesLine.textContent = `Notes: ${notes}`;
+      selectedMeta.append(notesLine);
+    }
     if (hivTestLine) selectedMeta.append(hivTestLine);
     if (doxycyclineLine) selectedMeta.append(doxycyclineLine);
     if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
@@ -770,7 +782,6 @@ function renderSelectedMeta(loggedAt, date) {
 
   const takenLine = document.createElement("span");
   const timingLine = document.createElement("span");
-  const notesLine = document.createElement("span");
   const timing = getTimingDetail(loggedAt, date);
   const timingClass = getTakenStatusClass(timing);
   const notes = getLogNotes(loggedAt);
@@ -781,12 +792,15 @@ function renderSelectedMeta(loggedAt, date) {
   takenLine.textContent = `Took ${pillsTaken} ${pillText} at ${formatTime(new Date(getLogTakenAt(loggedAt)))}.`;
   timingLine.className = `timing-detail ${timingClass}`.trim();
   timingLine.textContent = timing;
-  notesLine.className = "notes-detail";
-  notesLine.textContent = notes ? `Notes: ${notes}` : "No notes";
   if (scheduledLine) selectedMeta.append(scheduledLine);
   selectedMeta.append(takenLine);
   if (timing !== "Taken on time") selectedMeta.append(timingLine);
-  selectedMeta.append(notesLine);
+  if (notes) {
+    const notesLine = document.createElement("span");
+    notesLine.className = "notes-detail";
+    notesLine.textContent = `Notes: ${notes}`;
+    selectedMeta.append(notesLine);
+  }
   if (hivTestLine) selectedMeta.append(hivTestLine);
   if (doxycyclineLine) selectedMeta.append(doxycyclineLine);
   if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
@@ -805,8 +819,12 @@ function getDoxycyclineLine(entry) {
   if (!hasDoxycyclineLogged(entry)) return null;
 
   const line = document.createElement("span");
+  const takenAt = getLogDoxycyclineTakenAt(entry);
+  const notes = getLogDoxycyclineNotes(entry);
   line.className = "doxycycline-detail";
-  line.textContent = "Took 200mg doxycycline.";
+  line.textContent = takenAt
+    ? `Took 200mg doxycycline at ${formatTime(new Date(takenAt))}.${notes ? ` Notes: ${notes}` : ""}`
+    : `Took 200mg doxycycline.${notes ? ` Notes: ${notes}` : ""}`;
   return line;
 }
 
@@ -1950,6 +1968,9 @@ function fillEditForm(key) {
   editHivTest = hasHivTestLogged(entry);
   editHivLocation = getLogHivLocation(entry);
   editDoxycyclineTaken = hasDoxycyclineLogged(entry);
+  setEditDoxycyclineTimeFromEntry(entry, selectedDay);
+  editDoxycyclineNotes = getLogDoxycyclineNotes(entry);
+  doxycyclineNotesInput.value = editDoxycyclineNotes;
   editRefillStart = isRefillStart(entry);
   editStartingPills = getLogStartingPills(entry) || 30;
   isRefillPillsWheelOpen = false;
@@ -1986,6 +2007,12 @@ async function saveEditedLogEntry(event) {
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
   const shouldSaveDoseTime = hasDoseLogged(previousEntry) || activeEditSection === "time" || activeEditSection === "pills";
+  if (activeEditSection === "doxycycline") {
+    editDoxycyclineTaken = true;
+    editDoxycyclineHour = getWheelValue(doxycyclineHourWheel, editDoxycyclineHour);
+    editDoxycyclineMinute = getWheelValue(doxycyclineMinuteWheel, editDoxycyclineMinute);
+    editDoxycyclineNotes = doxycyclineNotesInput.value.trim();
+  }
   let editedNotes = removeHivTestNote(removeAutoEncounterNote(editNotesInput.value));
   const entry = createLogEntry(
     shouldSaveDoseTime ? updatedDate : null,
@@ -1997,7 +2024,9 @@ async function saveEditedLogEntry(event) {
     editSexStatus === "had" ? editEncounterDetails : [],
     editHivTest,
     editHivLocation,
-    editDoxycyclineTaken
+    editDoxycyclineTaken,
+    getEditDoxycyclineTakenAt(),
+    editDoxycyclineNotes
   );
 
   if (!hasLogContent(entry)) {
@@ -2091,11 +2120,26 @@ function getEditedTime() {
   };
 }
 
+function setEditDoxycyclineTimeFromEntry(entry, fallbackDate) {
+  const doxycyclineTakenAt = getLogDoxycyclineTakenAt(entry);
+  const date = doxycyclineTakenAt ? new Date(doxycyclineTakenAt) : getDefaultEditTime(fallbackDate);
+  editDoxycyclineHour = date.getHours();
+  editDoxycyclineMinute = date.getMinutes();
+}
+
+function getEditDoxycyclineTakenAt() {
+  if (!editDoxycyclineTaken) return "";
+  const date = new Date(editingBaseDate);
+  date.setHours(editDoxycyclineHour, editDoxycyclineMinute, 0, 0);
+  return date.toISOString();
+}
+
 function closeEditSection() {
   activeEditSection = "";
   isEditTimeOpen = false;
   isEditPillsOpen = false;
   isEditNotesOpen = false;
+  isEditDoxycyclineOpen = false;
   isPillsTakenWheelOpen = false;
   isRefillPillsWheelOpen = false;
   renderEditSection();
@@ -2114,6 +2158,7 @@ function renderEditSection() {
     time: "Edit time taken",
     pills: "Edit pills taken",
     hiv: "HIV Test",
+    doxycycline: "Took 200mg doxycycline",
     notes: "Notes",
   };
   const isMenu = activeEditSection === "";
@@ -2137,6 +2182,7 @@ function renderEditSection() {
   editTimeField.hidden = activeEditSection !== "time";
   editPillsField.hidden = activeEditSection !== "pills";
   editHivTestField.hidden = activeEditSection !== "hiv";
+  editDoxycyclineField.hidden = activeEditSection !== "doxycycline";
   editNotesField.hidden = activeEditSection !== "notes";
 }
 
@@ -2213,14 +2259,26 @@ function renderEditHivTestControls() {
   editHivLocationSelect.value = editHivTest ? editHivLocation : hivNotTestedOption;
 }
 
-async function toggleEditDoxycycline() {
-  editDoxycyclineTaken = !editDoxycyclineTaken;
+function openEditDoxycyclineSection() {
+  activeEditSection = "doxycycline";
+  isEditDoxycyclineOpen = true;
+  renderEditSection();
   renderEditDoxycyclineControls();
-  await saveEditedLogEntry();
 }
 
 function renderEditDoxycyclineControls() {
   editDoxycyclineButton.classList.toggle("is-active", editDoxycyclineTaken);
+  editDoxycyclineField.hidden = activeEditSection !== "doxycycline" || !isEditDoxycyclineOpen;
+
+  if (!isEditDoxycyclineOpen) return;
+
+  doxycyclineNotesInput.value = editDoxycyclineNotes;
+  renderPickerWheel(doxycyclineHourWheel, getHourWheelOptions(), editDoxycyclineHour, (value) => {
+    editDoxycyclineHour = value;
+  });
+  renderPickerWheel(doxycyclineMinuteWheel, getMinuteWheelOptions(), editDoxycyclineMinute, (value) => {
+    editDoxycyclineMinute = value;
+  });
 }
 
 function openEditNotesSection() {
@@ -2759,6 +2817,7 @@ function parseLogEntry(entry) {
   const hivLocation = hasSavedHivLocation ? normalizeHivLocation(entry?.hivLocation) : hivNoteLocation || hivTestLocations[0];
   const encounterDetails = normalizeEncounterDetailsList(entry?.encounterDetails);
   const doxycyclineTaken = entry?.doxycyclineTaken === true;
+  const doxycyclineTakenAt = typeof entry?.doxycyclineTakenAt === "string" ? entry.doxycyclineTakenAt : "";
 
   return {
     takenAt: Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt,
@@ -2771,6 +2830,8 @@ function parseLogEntry(entry) {
     hivTest,
     hivLocation: hivTest ? hivLocation : "",
     doxycyclineTaken,
+    doxycyclineTakenAt: doxycyclineTaken && !Number.isNaN(new Date(doxycyclineTakenAt).getTime()) ? doxycyclineTakenAt : "",
+    doxycyclineNotes: doxycyclineTaken && typeof entry?.doxycyclineNotes === "string" ? entry.doxycyclineNotes : "",
   };
 }
 
@@ -2880,9 +2941,12 @@ function createLogEntry(
   encounterDetails = [],
   hivTest = false,
   hivLocation = "",
-  doxycyclineTaken = false
+  doxycyclineTaken = false,
+  doxycyclineTakenAt = "",
+  doxycyclineNotes = ""
 ) {
   const takenAtIsValid = takenAt instanceof Date && !Number.isNaN(takenAt.getTime());
+  const doxycyclineTakenAtIsValid = typeof doxycyclineTakenAt === "string" && !Number.isNaN(new Date(doxycyclineTakenAt).getTime());
   return {
     takenAt: takenAtIsValid ? takenAt.toISOString() : "",
     notes: removeAutoEncounterNote(notes),
@@ -2894,6 +2958,8 @@ function createLogEntry(
     hivTest: hivTest === true,
     hivLocation: hivTest === true ? normalizeHivLocation(hivLocation) : "",
     doxycyclineTaken: doxycyclineTaken === true,
+    doxycyclineTakenAt: doxycyclineTaken === true && doxycyclineTakenAtIsValid ? doxycyclineTakenAt : "",
+    doxycyclineNotes: doxycyclineTaken === true ? doxycyclineNotes.trim() : "",
   };
 }
 
@@ -3158,6 +3224,18 @@ function hasHivTestLogged(entry) {
 
 function hasDoxycyclineLogged(entry) {
   return typeof entry !== "string" && entry?.doxycyclineTaken === true;
+}
+
+function getLogDoxycyclineTakenAt(entry) {
+  const takenAt = typeof entry !== "string" ? entry?.doxycyclineTakenAt : "";
+  if (!takenAt) return "";
+  return Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt;
+}
+
+function getLogDoxycyclineNotes(entry) {
+  return typeof entry !== "string" && typeof entry?.doxycyclineNotes === "string"
+    ? entry.doxycyclineNotes
+    : "";
 }
 
 function getLogHivLocation(entry) {

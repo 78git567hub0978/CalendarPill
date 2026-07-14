@@ -1166,7 +1166,7 @@ textarea.encounter-draft-value {
 
 .hiv-test-detail {
   margin-top: 3px;
-  color: var(--accent);
+  color: var(--missed);
 }
 
 .doxycycline-detail {
