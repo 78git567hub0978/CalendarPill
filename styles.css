@@ -531,6 +531,15 @@ h3 {
   line-height: 1;
 }
 
+.legend-dot.is-doxycycline {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .legend-dot.is-schedule-change {
   border-radius: 2px;
   background: var(--ink);
