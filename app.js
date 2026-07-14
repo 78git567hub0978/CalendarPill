@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v265";
+const APP_VERSION = "v267";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -158,6 +158,7 @@ const editHivTestButton = document.querySelector("#editHivTestButton");
 const editHivTestField = document.querySelector("#editHivTestField");
 const editHivLocationSelect = document.querySelector("#editHivLocationSelect");
 const saveHivButton = document.querySelector("#saveHivButton");
+const editDoxycyclineButton = document.querySelector("#editDoxycyclineButton");
 const refillToggleButton = document.querySelector("#refillToggleButton");
 const refillPillsField = document.querySelector("#refillPillsField");
 const refillPillsButton = document.querySelector("#refillPillsButton");
@@ -226,6 +227,7 @@ let encounterDialogMode = "edit";
 let encounterMissingLocationIndex = -1;
 let editHivTest = false;
 let editHivLocation = hivTestLocations[0];
+let editDoxycyclineTaken = false;
 let editRefillStart = false;
 let editStartingPills = 30;
 let isRefillPillsWheelOpen = false;
@@ -288,6 +290,7 @@ savePillsButton.addEventListener("click", saveEditedLogEntry);
 editHadSexButton.addEventListener("click", openEditEncountersWindow);
 editHivTestButton.addEventListener("click", openEditHivSection);
 saveHivButton.addEventListener("click", saveEditHivTest);
+editDoxycyclineButton.addEventListener("click", toggleEditDoxycycline);
 refillToggleButton.addEventListener("click", openEditRefillSection);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 saveRefillButton.addEventListener("click", saveEditedLogEntry);
@@ -550,22 +553,34 @@ function renderCalendar() {
     if (isRefillStart(logs[key])) button.classList.add("is-refill-start");
     if (hasSexLogged(logs[key])) button.classList.add("has-sex");
     if (hasHivTestLogged(logs[key])) button.classList.add("has-hiv-test");
+    if (hasDoxycyclineLogged(logs[key])) button.classList.add("has-doxycycline");
     if (logs[key] && getLogNotes(logs[key]).trim()) button.classList.add("has-notes");
 
     time.dateTime = key;
-    if (logs[key] && getLogNotes(logs[key]).trim()) {
+    if (logs[key] && (getLogNotes(logs[key]).trim() || hasHivTestLogged(logs[key]) || hasDoxycyclineLogged(logs[key]))) {
+      const markerGroup = document.createElement("span");
+      markerGroup.className = "date-markers";
+      markerGroup.setAttribute("aria-hidden", "true");
+
+      if (logs[key] && getLogNotes(logs[key]).trim()) {
       const noteMarker = document.createElement("span");
       noteMarker.className = "note-marker";
-      noteMarker.setAttribute("aria-hidden", "true");
       noteMarker.textContent = "*";
-      time.append(noteMarker);
-    }
-    if (hasHivTestLogged(logs[key])) {
-      const hivMarker = document.createElement("span");
-      hivMarker.className = "hiv-marker";
-      hivMarker.setAttribute("aria-hidden", "true");
-      hivMarker.textContent = "*";
-      time.append(hivMarker);
+        markerGroup.append(noteMarker);
+      }
+      if (hasHivTestLogged(logs[key])) {
+        const hivMarker = document.createElement("span");
+        hivMarker.className = "hiv-marker";
+        hivMarker.textContent = "*";
+        markerGroup.append(hivMarker);
+      }
+      if (hasDoxycyclineLogged(logs[key])) {
+        const doxyMarker = document.createElement("span");
+        doxyMarker.className = "doxycycline-marker";
+        doxyMarker.textContent = "*";
+        markerGroup.append(doxyMarker);
+      }
+      time.append(markerGroup);
     }
     const dateNumber = document.createElement("span");
     dateNumber.className = "day-number";
@@ -730,6 +745,8 @@ function renderSelectedMeta(loggedAt, date) {
   selectedMeta.replaceChildren();
   const scheduleChangeLine = getScheduleChangeLine(date);
   const scheduledLine = getScheduledDoseLine(date);
+  const hivTestLine = getHivTestLine(loggedAt);
+  const doxycyclineLine = getDoxycyclineLine(loggedAt);
   const doseLogged = hasDoseLogged(loggedAt);
 
   if (!doseLogged) {
@@ -745,6 +762,8 @@ function renderSelectedMeta(loggedAt, date) {
     if (scheduledLine) selectedMeta.append(scheduledLine);
     selectedMeta.append(statusLine);
     selectedMeta.append(notesLine);
+    if (hivTestLine) selectedMeta.append(hivTestLine);
+    if (doxycyclineLine) selectedMeta.append(doxycyclineLine);
     if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
     return;
   }
@@ -768,7 +787,27 @@ function renderSelectedMeta(loggedAt, date) {
   selectedMeta.append(takenLine);
   if (timing !== "Taken on time") selectedMeta.append(timingLine);
   selectedMeta.append(notesLine);
+  if (hivTestLine) selectedMeta.append(hivTestLine);
+  if (doxycyclineLine) selectedMeta.append(doxycyclineLine);
   if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
+}
+
+function getHivTestLine(entry) {
+  if (!hasHivTestLogged(entry)) return null;
+
+  const line = document.createElement("span");
+  line.className = "hiv-test-detail";
+  line.textContent = getHivTestDetailText(entry);
+  return line;
+}
+
+function getDoxycyclineLine(entry) {
+  if (!hasDoxycyclineLogged(entry)) return null;
+
+  const line = document.createElement("span");
+  line.className = "doxycycline-detail";
+  line.textContent = "Took 200mg doxycycline.";
+  return line;
 }
 
 function renderEncounterDetails(loggedAt) {
@@ -1368,7 +1407,8 @@ async function markTaken(date) {
     getLogSexStatus(previousEntry),
     getLogEncounterDetailsList(previousEntry),
     hasHivTestLogged(previousEntry),
-    getLogHivLocation(previousEntry)
+    getLogHivLocation(previousEntry),
+    hasDoxycyclineLogged(previousEntry)
   );
   logs[key] = entry;
 
@@ -1909,18 +1949,20 @@ function fillEditForm(key) {
   editEncounterDetails = getLogEncounterDetailsList(entry);
   editHivTest = hasHivTestLogged(entry);
   editHivLocation = getLogHivLocation(entry);
+  editDoxycyclineTaken = hasDoxycyclineLogged(entry);
   editRefillStart = isRefillStart(entry);
   editStartingPills = getLogStartingPills(entry) || 30;
   isRefillPillsWheelOpen = false;
   activeEditSection = "";
   setEditTimeFromDate(takenAt);
-  editNotesInput.value = entry ? getLogNotes(entry) : "";
+  editNotesInput.value = entry ? removeHivTestNote(getLogNotes(entry)) : "";
   renderEditTimeControls();
   renderEditNotesControls();
   renderEditPillsControls();
   renderPillsTakenControls();
   renderEditSexControls();
   renderEditHivTestControls();
+  renderEditDoxycyclineControls();
   renderRefillControls();
   renderEditSection();
 }
@@ -1944,8 +1986,7 @@ async function saveEditedLogEntry(event) {
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
   const shouldSaveDoseTime = hasDoseLogged(previousEntry) || activeEditSection === "time" || activeEditSection === "pills";
-  let editedNotes = removeAutoEncounterNote(editNotesInput.value);
-  if (editHivTest) editedNotes = appendHivTestNote(editedNotes, editHivLocation);
+  let editedNotes = removeHivTestNote(removeAutoEncounterNote(editNotesInput.value));
   const entry = createLogEntry(
     shouldSaveDoseTime ? updatedDate : null,
     editedNotes,
@@ -1955,7 +1996,8 @@ async function saveEditedLogEntry(event) {
     editSexStatus,
     editSexStatus === "had" ? editEncounterDetails : [],
     editHivTest,
-    editHivLocation
+    editHivLocation,
+    editDoxycyclineTaken
   );
 
   if (!hasLogContent(entry)) {
@@ -2061,6 +2103,7 @@ function closeEditSection() {
   renderEditPillsControls();
   renderEditNotesControls();
   renderEditHivTestControls();
+  renderEditDoxycyclineControls();
   renderRefillControls();
   renderPillsTakenControls();
 }
@@ -2083,6 +2126,7 @@ function renderEditSection() {
     editPillsToggleButton,
     editHadSexButton,
     editHivTestButton,
+    editDoxycyclineButton,
     editNotesToggleButton,
     editCancelButton,
   ].forEach((element) => {
@@ -2158,9 +2202,7 @@ async function saveEditHivTest(event) {
   const selectedHivLocation = editHivLocationSelect.value;
   editHivTest = selectedHivLocation !== hivNotTestedOption;
   editHivLocation = editHivTest ? normalizeHivLocation(selectedHivLocation) : hivTestLocations[0];
-  editNotesInput.value = editHivTest
-    ? appendHivTestNote(removeHivTestNote(editNotesInput.value), editHivLocation)
-    : removeHivTestNote(editNotesInput.value);
+  editNotesInput.value = removeHivTestNote(editNotesInput.value);
   renderEditHivTestControls();
   await saveEditedLogEntry();
 }
@@ -2169,6 +2211,16 @@ function renderEditHivTestControls() {
   editHivTestButton.classList.toggle("is-active", editHivTest);
   editHivTestField.hidden = activeEditSection !== "hiv";
   editHivLocationSelect.value = editHivTest ? editHivLocation : hivNotTestedOption;
+}
+
+async function toggleEditDoxycycline() {
+  editDoxycyclineTaken = !editDoxycyclineTaken;
+  renderEditDoxycyclineControls();
+  await saveEditedLogEntry();
+}
+
+function renderEditDoxycyclineControls() {
+  editDoxycyclineButton.classList.toggle("is-active", editDoxycyclineTaken);
 }
 
 function openEditNotesSection() {
@@ -2560,13 +2612,14 @@ async function ensureHivTestLogged(key) {
 
   const rawHivLocation = typeof entry?.hivLocation === "string" ? entry.hivLocation : "";
   const hasSavedHivLocation = hivTestLocations.includes(rawHivLocation);
-  const hasSavedHivNote = /^HIV Negative at .+\.?$/im.test(getLogNotes(entry));
+  const hivNoteLocation = getHivTestLocationFromNotes(getLogNotes(entry));
+  const hasSavedHivNote = Boolean(hivNoteLocation);
   if (!hasSavedHivLocation && !hasSavedHivNote) return;
 
-  const hivLocation = hasSavedHivLocation ? normalizeHivLocation(rawHivLocation) : getLogHivLocation(entry);
+  const hivLocation = hasSavedHivLocation ? normalizeHivLocation(rawHivLocation) : hivNoteLocation || getLogHivLocation(entry);
   const fixedEntry = {
     ...entry,
-    notes: appendHivTestNote(getLogNotes(entry), hivLocation),
+    notes: removeHivTestNote(getLogNotes(entry)),
     hivTest: true,
     hivLocation,
   };
@@ -2699,14 +2752,17 @@ function parseLogEntry(entry) {
   const sexStatus = entry?.sexStatus === "had" || entry?.sexStatus === "did-not" ? entry.sexStatus : "";
   const rawHivLocation = typeof entry?.hivLocation === "string" ? entry.hivLocation : "";
   const hasSavedHivLocation = hivTestLocations.includes(rawHivLocation);
-  const hasHivNote = /^HIV Negative at .+\.?$/im.test(typeof entry?.notes === "string" ? entry.notes : "");
+  const rawNotes = typeof entry?.notes === "string" ? entry.notes : "";
+  const hivNoteLocation = getHivTestLocationFromNotes(rawNotes);
+  const hasHivNote = Boolean(hivNoteLocation);
   const hivTest = entry?.hivTest === true || hasSavedHivLocation || hasHivNote;
-  const hivLocation = normalizeHivLocation(entry?.hivLocation);
+  const hivLocation = hasSavedHivLocation ? normalizeHivLocation(entry?.hivLocation) : hivNoteLocation || hivTestLocations[0];
   const encounterDetails = normalizeEncounterDetailsList(entry?.encounterDetails);
+  const doxycyclineTaken = entry?.doxycyclineTaken === true;
 
   return {
     takenAt: Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt,
-    notes: removeAutoEncounterNote(typeof entry?.notes === "string" ? entry.notes : ""),
+    notes: removeHivTestNote(removeAutoEncounterNote(rawNotes)),
     pillsTaken: normalizePillsTaken(entry?.pillsTaken),
     refillStart,
     startingPills: refillStart ? normalizeStartingPills(entry?.startingPills) : 0,
@@ -2714,6 +2770,7 @@ function parseLogEntry(entry) {
     encounterDetails: sexStatus === "had" ? encounterDetails : [],
     hivTest,
     hivLocation: hivTest ? hivLocation : "",
+    doxycyclineTaken,
   };
 }
 
@@ -2822,7 +2879,8 @@ function createLogEntry(
   sexStatus = "",
   encounterDetails = [],
   hivTest = false,
-  hivLocation = ""
+  hivLocation = "",
+  doxycyclineTaken = false
 ) {
   const takenAtIsValid = takenAt instanceof Date && !Number.isNaN(takenAt.getTime());
   return {
@@ -2835,6 +2893,7 @@ function createLogEntry(
     encounterDetails: sexStatus === "had" ? normalizeEncounterDetailsList(encounterDetails) : [],
     hivTest: hivTest === true,
     hivLocation: hivTest === true ? normalizeHivLocation(hivLocation) : "",
+    doxycyclineTaken: doxycyclineTaken === true,
   };
 }
 
@@ -2857,6 +2916,7 @@ function hasLogContent(entry) {
     hasDoseLogged(entry) ||
     getLogNotes(entry).trim() ||
     hasHivTestLogged(entry) ||
+    hasDoxycyclineLogged(entry) ||
     hasSexLogged(entry) ||
     isRefillStart(entry)
   );
@@ -3056,10 +3116,14 @@ function removeAutoEncounterNote(notes) {
     .trim();
 }
 
-function appendHivTestNote(notes, location) {
-  const trimmedNotes = removeHivTestNote(notes);
-  const hivNote = `HIV Negative at ${normalizeHivLocation(location)}.`;
-  return trimmedNotes ? `${trimmedNotes}\n${hivNote}` : hivNote;
+function getHivTestDetailText(entry) {
+  return `HIV Negative at ${getLogHivLocation(entry)}.`;
+}
+
+function getHivTestLocationFromNotes(notes) {
+  const match = notes.match(/^HIV Negative at (.+?)\.?$/im);
+  if (!match) return "";
+  return normalizeHivLocation(match[1].trim());
 }
 
 function removeHivTestNote(notes) {
@@ -3090,6 +3154,10 @@ function hasHivTestLogged(entry) {
     hivTestLocations.includes(entry?.hivLocation) ||
     /^HIV Negative at .+\.?$/im.test(getLogNotes(entry))
   );
+}
+
+function hasDoxycyclineLogged(entry) {
+  return typeof entry !== "string" && entry?.doxycyclineTaken === true;
 }
 
 function getLogHivLocation(entry) {
