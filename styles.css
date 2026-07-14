@@ -1516,6 +1516,10 @@ textarea.encounter-draft-value {
   display: none;
 }
 
+#encounterDialog {
+  z-index: 20;
+}
+
 .edit-dialog__panel {
   width: min(100%, 360px);
   max-height: calc(100svh - 36px);
