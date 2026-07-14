@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v273";
+const APP_VERSION = "v274";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -301,7 +301,7 @@ editHadSexButton.addEventListener("click", openEditEncountersWindow);
 editHivTestButton.addEventListener("click", openEditHivSection);
 saveHivButton.addEventListener("click", saveEditHivTest);
 editDoxycyclineButton.addEventListener("click", openEditDoxycyclineSection);
-saveDoxycyclineButton.addEventListener("click", saveEditedLogEntry);
+saveDoxycyclineButton.addEventListener("click", saveEditDoxycycline);
 deleteDoxycyclineButton.addEventListener("click", deleteEditDoxycycline);
 refillToggleButton.addEventListener("click", openEditRefillSection);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
@@ -2018,11 +2018,12 @@ async function saveEditedLogEntry(event) {
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
   const shouldSaveDoseTime = hasDoseLogged(previousEntry) || activeEditSection === "time" || activeEditSection === "pills";
-  if (activeEditSection === "doxycycline") {
-    editDoxycyclineTaken = true;
+  if (activeEditSection === "doxycycline" && editDoxycyclineTaken) {
     editDoxycyclineHour = getWheelValue(doxycyclineHourWheel, editDoxycyclineHour);
     editDoxycyclineMinute = getWheelValue(doxycyclineMinuteWheel, editDoxycyclineMinute);
     editDoxycyclineNotes = doxycyclineNotesInput.value.trim();
+  } else if (!editDoxycyclineTaken) {
+    editDoxycyclineNotes = "";
   }
   let editedNotes = removeHivTestNote(removeAutoEncounterNote(editNotesInput.value));
   const entry = createLogEntry(
@@ -2291,6 +2292,12 @@ function renderEditDoxycyclineControls() {
   renderPickerWheel(doxycyclineMinuteWheel, getMinuteWheelOptions(), editDoxycyclineMinute, (value) => {
     editDoxycyclineMinute = value;
   });
+}
+
+async function saveEditDoxycycline(event) {
+  event?.preventDefault();
+  editDoxycyclineTaken = true;
+  await saveEditedLogEntry();
 }
 
 async function deleteEditDoxycycline() {
