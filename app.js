@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v271";
+const APP_VERSION = "v273";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -164,6 +164,7 @@ const doxycyclineHourWheel = document.querySelector("#doxycyclineHourWheel");
 const doxycyclineMinuteWheel = document.querySelector("#doxycyclineMinuteWheel");
 const doxycyclineNotesInput = document.querySelector("#doxycyclineNotesInput");
 const saveDoxycyclineButton = document.querySelector("#saveDoxycyclineButton");
+const deleteDoxycyclineButton = document.querySelector("#deleteDoxycyclineButton");
 const refillToggleButton = document.querySelector("#refillToggleButton");
 const refillPillsField = document.querySelector("#refillPillsField");
 const refillPillsButton = document.querySelector("#refillPillsButton");
@@ -301,6 +302,7 @@ editHivTestButton.addEventListener("click", openEditHivSection);
 saveHivButton.addEventListener("click", saveEditHivTest);
 editDoxycyclineButton.addEventListener("click", openEditDoxycyclineSection);
 saveDoxycyclineButton.addEventListener("click", saveEditedLogEntry);
+deleteDoxycyclineButton.addEventListener("click", deleteEditDoxycycline);
 refillToggleButton.addEventListener("click", openEditRefillSection);
 refillPillsButton.addEventListener("click", toggleRefillPillsWheel);
 saveRefillButton.addEventListener("click", saveEditedLogEntry);
@@ -1673,6 +1675,9 @@ function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
       control.closest(".encounter-draft-field")?.classList.remove("has-error");
       control.closest(".encounter-draft-item")?.classList.remove("has-location-error");
     }
+    if (!isNote && rowConfig.key === "location") {
+      renderEncounterLocationSuggestions();
+    }
     if (isNote) {
       control.classList.toggle("is-empty", !control.value.trim());
       control.classList.toggle("is-yes", Boolean(control.value.trim()));
@@ -1707,15 +1712,21 @@ function getEncounterLocationSuggestions() {
     const trimmedLocation = location.trim();
     if (!trimmedLocation) return;
     const normalizedKey = trimmedLocation.toLocaleLowerCase();
-    if (!locationMap.has(normalizedKey)) locationMap.set(normalizedKey, trimmedLocation);
+    locationMap.delete(normalizedKey);
+    locationMap.set(normalizedKey, trimmedLocation);
   };
 
-  Object.values(logs).forEach((entry) => {
-    getLogEncounterDetailsList(entry).forEach((details) => addLocation(details.location));
-  });
+  Object.keys(logs)
+    .sort()
+    .forEach((key) => {
+      getLogEncounterDetailsList(logs[key]).forEach((details) => addLocation(details.location));
+    });
   encounterDialogDetails.forEach((details) => addLocation(details.location || ""));
+  encounterDraftList
+    .querySelectorAll('[data-encounter-field="location"]')
+    .forEach((input) => addLocation(input.value));
 
-  return Array.from(locationMap.values()).sort((first, second) => first.localeCompare(second));
+  return Array.from(locationMap.values()).reverse();
 }
 
 function updateEncounterDialogDetail(encounterIndex, key, value, isNote) {
@@ -2269,6 +2280,7 @@ function openEditDoxycyclineSection() {
 function renderEditDoxycyclineControls() {
   editDoxycyclineButton.classList.toggle("is-active", editDoxycyclineTaken);
   editDoxycyclineField.hidden = activeEditSection !== "doxycycline" || !isEditDoxycyclineOpen;
+  deleteDoxycyclineButton.hidden = !editDoxycyclineTaken;
 
   if (!isEditDoxycyclineOpen) return;
 
@@ -2279,6 +2291,14 @@ function renderEditDoxycyclineControls() {
   renderPickerWheel(doxycyclineMinuteWheel, getMinuteWheelOptions(), editDoxycyclineMinute, (value) => {
     editDoxycyclineMinute = value;
   });
+}
+
+async function deleteEditDoxycycline() {
+  editDoxycyclineTaken = false;
+  editDoxycyclineNotes = "";
+  doxycyclineNotesInput.value = "";
+  renderEditDoxycyclineControls();
+  await saveEditedLogEntry();
 }
 
 function openEditNotesSection() {

@@ -1688,6 +1688,17 @@ textarea.encounter-draft-value {
   font-weight: 900;
 }
 
+.inline-delete-action {
+  justify-self: center;
+  min-width: 150px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: #050505;
+  background: #8a8a8a;
+  font-weight: 900;
+}
+
 .single-wheel-picker {
   display: grid;
   grid-template-columns: 52px;
