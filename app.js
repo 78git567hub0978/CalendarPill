@@ -1,6 +1,6 @@
 console.log("app.js loaded");
 
-const APP_VERSION = "v261";
+const APP_VERSION = "v265";
 const ALLOWED_EMAIL = "dllaurence90@gmail.com";
 const ALLOWED_UID = "nIku6M7ufURgtymfFCcBq0HjCbf1";
 const localCachePrefix = "pill-calendar-cache";
@@ -120,6 +120,7 @@ const encounterForm = document.querySelector("#encounterForm");
 const encounterDialogTitle = document.querySelector("#encounterDialogTitle");
 const encounterEditDate = document.querySelector("#encounterEditDate");
 const encounterDraftList = document.querySelector("#encounterDraftList");
+const encounterLocationSuggestions = document.querySelector("#encounterLocationSuggestions");
 const encounterValidationMessage = document.querySelector("#encounterValidationMessage");
 const backEncounterButton = document.querySelector("#backEncounterButton");
 const encounterCancelButton = document.querySelector("#encounterCancelButton");
@@ -537,14 +538,14 @@ function renderCalendar() {
     if (!inViewedMonth) button.classList.add("is-outside");
     if (key === toKey(today)) button.classList.add("is-today");
     if (key === toKey(selectedDate)) button.classList.add("is-selected");
-    if (logs[key] && !isFutureDate(date) && !ended) {
+    if (hasDoseLogged(logs[key]) && !isFutureDate(date) && !ended) {
       button.classList.add("is-taken");
       const timingClass = getCalendarTimingClass(logs[key], date);
       if (timingClass) button.classList.add(timingClass);
     }
     if (ended) button.classList.add("is-ended");
-    if (!logs[key] && isUpcomingDate(date) && !ended) button.classList.add("is-future");
-    if (!logs[key] && isMissedDate(date, logs[key])) button.classList.add("is-missed");
+    if (!hasDoseLogged(logs[key]) && isUpcomingDate(date) && !ended) button.classList.add("is-future");
+    if (!hasDoseLogged(logs[key]) && isMissedDate(date, logs[key])) button.classList.add("is-missed");
     if (!ended && hasScheduleChangeOn(key)) button.classList.add("is-schedule-change");
     if (isRefillStart(logs[key])) button.classList.add("is-refill-start");
     if (hasSexLogged(logs[key])) button.classList.add("has-sex");
@@ -702,6 +703,7 @@ function renderMarkButton(loggedAt, date) {
   const future = isFutureDate(date);
   const upcoming = isUpcomingDate(date);
   const ended = isEndedDate(date);
+  const doseLogged = hasDoseLogged(loggedAt);
   let label = "Mark as taken";
   let statusClass = "";
 
@@ -710,7 +712,7 @@ function renderMarkButton(loggedAt, date) {
     statusClass = "is-ended";
   } else if (future || (!loggedAt && upcoming)) {
     label = "Mark as taken";
-  } else if (loggedAt) {
+  } else if (doseLogged) {
     const timing = getTimingDetail(loggedAt, date);
     label = getTakenStatusLabel(timing);
     statusClass = getTakenStatusClass(timing);
@@ -728,15 +730,21 @@ function renderSelectedMeta(loggedAt, date) {
   selectedMeta.replaceChildren();
   const scheduleChangeLine = getScheduleChangeLine(date);
   const scheduledLine = getScheduledDoseLine(date);
+  const doseLogged = hasDoseLogged(loggedAt);
 
-  if (!loggedAt) {
+  if (!doseLogged) {
     const missed = isMissedDate(date, loggedAt);
     const ended = isEndedDate(date);
+    const notes = getLogNotes(loggedAt);
     const statusLine = document.createElement("span");
+    const notesLine = document.createElement("span");
     statusLine.textContent = ended ? "PreP Stopped" : missed ? "Missed" : "No pill logged for this day.";
+    notesLine.className = "notes-detail";
+    notesLine.textContent = notes ? `Notes: ${notes}` : "No notes";
     selectedMeta.className = missed || ended ? "missed-detail" : "";
     if (scheduledLine) selectedMeta.append(scheduledLine);
     selectedMeta.append(statusLine);
+    selectedMeta.append(notesLine);
     if (scheduleChangeLine) selectedMeta.append(scheduleChangeLine);
     return;
   }
@@ -803,10 +811,7 @@ function appendEncounterDetailRows(detailList, details) {
       description.textContent = valueText;
     }
 
-    const shouldHighlightValue =
-      valueText === "Yes" ||
-      (["Body count", "Location", "Notes"].includes(label) && valueText !== "Not entered") ||
-      (["I came", "He came"].includes(label) && valueText !== "No" && valueText !== "Not entered");
+    const shouldHighlightValue = isGreenEncounterValue(label, valueText);
 
     if (shouldHighlightValue) {
       term.classList.add("is-yes");
@@ -825,10 +830,10 @@ function getEncounterDetailRows(details) {
     ["He sucked me", details.heSuckedMe, getEncounterLineNote(details, "heSuckedMe")],
     ["I fucked him", details.iFuckedHim, getEncounterLineNote(details, "iFuckedHim")],
     ["He fucked me", details.heFuckedMe, getEncounterLineNote(details, "heFuckedMe")],
-    ["I swallowed his cum", details.iSwallowedHisCum, getEncounterLineNote(details, "iSwallowedHisCum")],
-    ["He swallowed my cum", details.heSwallowedMyCum, getEncounterLineNote(details, "heSwallowedMyCum")],
     ["I came", details.iCame, getEncounterLineNote(details, "iCame")],
     ["He came", details.heCame, getEncounterLineNote(details, "heCame")],
+    ["I swallowed his cum", details.iSwallowedHisCum, getEncounterLineNote(details, "iSwallowedHisCum")],
+    ["He swallowed my cum", details.heSwallowedMyCum, getEncounterLineNote(details, "heSwallowedMyCum")],
     ["Notes", details.notes],
   ];
 }
@@ -897,24 +902,6 @@ function getEncounterEditableRows(details) {
       noteKey: "heFuckedMe",
     },
     {
-      label: "I swallowed his cum",
-      key: "iSwallowedHisCum",
-      type: "select",
-      choices: ["Yes", "No"],
-      value: details.iSwallowedHisCum,
-      note: getEncounterLineNote(details, "iSwallowedHisCum"),
-      noteKey: "iSwallowedHisCum",
-    },
-    {
-      label: "He swallowed my cum",
-      key: "heSwallowedMyCum",
-      type: "select",
-      choices: ["Yes", "No"],
-      value: details.heSwallowedMyCum,
-      note: getEncounterLineNote(details, "heSwallowedMyCum"),
-      noteKey: "heSwallowedMyCum",
-    },
-    {
       label: "I came",
       key: "iCame",
       type: "select",
@@ -933,6 +920,24 @@ function getEncounterEditableRows(details) {
       noteKey: "heCame",
     },
     {
+      label: "I swallowed his cum",
+      key: "iSwallowedHisCum",
+      type: "select",
+      choices: ["Yes", "No"],
+      value: details.iSwallowedHisCum,
+      note: getEncounterLineNote(details, "iSwallowedHisCum"),
+      noteKey: "iSwallowedHisCum",
+    },
+    {
+      label: "He swallowed my cum",
+      key: "heSwallowedMyCum",
+      type: "select",
+      choices: ["Yes", "No"],
+      value: details.heSwallowedMyCum,
+      note: getEncounterLineNote(details, "heSwallowedMyCum"),
+      noteKey: "heSwallowedMyCum",
+    },
+    {
       label: "Notes",
       key: "notes",
       type: "textarea",
@@ -943,9 +948,7 @@ function getEncounterEditableRows(details) {
 
 function isGreenEncounterValue(label, valueText) {
   const hasAnswer = valueText !== "Not entered" && valueText !== "";
-  return valueText === "Yes" ||
-    (["Body count", "Location", "Notes"].includes(label) && hasAnswer) ||
-    (["I came", "He came"].includes(label) && valueText !== "No" && hasAnswer);
+  return hasAnswer && valueText !== "No";
 }
 
 function getScheduledDoseLine(date) {
@@ -1355,7 +1358,18 @@ async function markTaken(date) {
 
   hideAppError();
   const key = toKey(date);
-  const entry = createLogEntry(new Date(), "");
+  const previousEntry = logs[key];
+  const entry = createLogEntry(
+    new Date(),
+    getLogNotes(previousEntry),
+    isRefillStart(previousEntry),
+    getLogStartingPills(previousEntry),
+    1,
+    getLogSexStatus(previousEntry),
+    getLogEncounterDetailsList(previousEntry),
+    hasHivTestLogged(previousEntry),
+    getLogHivLocation(previousEntry)
+  );
   logs[key] = entry;
 
   try {
@@ -1363,7 +1377,11 @@ async function markTaken(date) {
     render();
     openSexDialog();
   } catch (error) {
-    delete logs[key];
+    if (previousEntry) {
+      logs[key] = previousEntry;
+    } else {
+      delete logs[key];
+    }
     showAppError("Could not save this dose. Please try again.");
     console.error(error);
     render();
@@ -1493,6 +1511,7 @@ function renderEncounterDialogTitle() {
 function renderEncounterDraftList() {
   const visibleDetails = getEncounterDialogDetailsForSave();
 
+  renderEncounterLocationSuggestions();
   encounterDraftList.replaceChildren();
   encounterDraftList.hidden = visibleDetails.length === 0;
 
@@ -1570,6 +1589,10 @@ function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
   } else if (rowConfig.type !== "select" && rowConfig.type !== "textarea") {
     control.type = "text";
   }
+  if (!isNote && rowConfig.key === "location") {
+    control.setAttribute("list", "encounterLocationSuggestions");
+    control.autocomplete = "off";
+  }
   if (!isNote && rowConfig.type === "textarea") control.rows = 4;
   if (!isNote && rowConfig.type === "select") {
     rowConfig.choices.forEach((choice) => {
@@ -1607,6 +1630,34 @@ function createEncounterEditableControl(rowConfig, encounterIndex, isNote) {
   }
 
   return control;
+}
+
+function renderEncounterLocationSuggestions() {
+  const locations = getEncounterLocationSuggestions();
+  encounterLocationSuggestions.replaceChildren();
+  locations.forEach((location) => {
+    const option = document.createElement("option");
+    option.value = location;
+    encounterLocationSuggestions.append(option);
+  });
+}
+
+function getEncounterLocationSuggestions() {
+  const locationMap = new Map();
+
+  const addLocation = (location) => {
+    const trimmedLocation = location.trim();
+    if (!trimmedLocation) return;
+    const normalizedKey = trimmedLocation.toLocaleLowerCase();
+    if (!locationMap.has(normalizedKey)) locationMap.set(normalizedKey, trimmedLocation);
+  };
+
+  Object.values(logs).forEach((entry) => {
+    getLogEncounterDetailsList(entry).forEach((details) => addLocation(details.location));
+  });
+  encounterDialogDetails.forEach((details) => addLocation(details.location || ""));
+
+  return Array.from(locationMap.values()).sort((first, second) => first.localeCompare(second));
 }
 
 function updateEncounterDialogDetail(encounterIndex, key, value, isNote) {
@@ -1734,12 +1785,12 @@ async function handleMarkButtonClick() {
     return;
   }
 
-  if (!logs[key] && !isMissedDate(selectedDate, logs[key])) {
+  if (!hasDoseLogged(logs[key]) && !isMissedDate(selectedDate, logs[key])) {
     await markTaken(selectedDate);
     return;
   }
 
-  if (logs[key]) {
+  if (hasDoseLogged(logs[key])) {
     openClearDoseDialog();
     return;
   }
@@ -1847,7 +1898,7 @@ function showEditForm() {
 function fillEditForm(key) {
   const entry = logs[key];
   const selectedDay = parseInputDate(key) || selectedDate;
-  const takenAt = entry ? new Date(getLogTakenAt(entry)) : getDefaultEditTime(selectedDay);
+  const takenAt = hasDoseLogged(entry) ? new Date(getLogTakenAt(entry)) : getDefaultEditTime(selectedDay);
   editingBaseDate = selectedDay;
   editPillsTaken = getLogPillsTaken(entry);
   isEditTimeOpen = false;
@@ -1892,10 +1943,11 @@ async function saveEditedLogEntry(event) {
   updatedDate.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
   const updatedKey = toKey(updatedDate);
   const previousEntry = logs[editingKey];
+  const shouldSaveDoseTime = hasDoseLogged(previousEntry) || activeEditSection === "time" || activeEditSection === "pills";
   let editedNotes = removeAutoEncounterNote(editNotesInput.value);
   if (editHivTest) editedNotes = appendHivTestNote(editedNotes, editHivLocation);
   const entry = createLogEntry(
-    updatedDate,
+    shouldSaveDoseTime ? updatedDate : null,
     editedNotes,
     editRefillStart,
     editStartingPills,
@@ -1905,6 +1957,21 @@ async function saveEditedLogEntry(event) {
     editHivTest,
     editHivLocation
   );
+
+  if (!hasLogContent(entry)) {
+    delete logs[editingKey];
+    try {
+      await deleteLogFromFirestore(editingKey);
+      closeEditDialog(true);
+      render();
+    } catch (error) {
+      if (previousEntry) logs[editingKey] = previousEntry;
+      showAppError("Could not save the edit. Please try again.");
+      console.error(error);
+      render();
+    }
+    return;
+  }
 
   if (editingKey !== toKey(updatedDate)) {
     delete logs[editingKey];
@@ -1941,10 +2008,19 @@ async function clearSelectedLogEntry() {
   hideAppError();
 
   const previousEntry = logs[key];
-  delete logs[key];
+  const supportEntry = removeDoseFromLogEntry(previousEntry);
+  if (supportEntry) {
+    logs[key] = supportEntry;
+  } else {
+    delete logs[key];
+  }
 
   try {
-    await deleteLogFromFirestore(key);
+    if (supportEntry) {
+      await saveLogToFirestore(key, supportEntry);
+    } else {
+      await deleteLogFromFirestore(key);
+    }
     closeClearDoseDialog();
     render();
   } catch (error) {
@@ -2448,7 +2524,7 @@ function getWheelValue(wheel, fallbackValue) {
 }
 
 function getDayLabel(date) {
-  const status = logs[toKey(date)] ? "pill taken" : "not logged";
+  const status = hasDoseLogged(logs[toKey(date)]) ? "pill taken" : "not logged";
   return `${dateFormatter.format(date)}, ${status}`;
 }
 
@@ -2463,7 +2539,7 @@ async function loadUserData(uid) {
   logs = {};
   logsSnapshot.forEach((logSnapshot) => {
     const entry = parseLogEntry(logSnapshot.data());
-    if (entry.takenAt) logs[logSnapshot.id] = entry;
+    if (hasLogContent(entry)) logs[logSnapshot.id] = entry;
   });
   feedPosts = [];
   feedSnapshot.forEach((postSnapshot) => {
@@ -2569,7 +2645,7 @@ function loadCachedUserData(uid) {
     feedPosts = [];
     Object.entries(cachedData.logs || {}).forEach(([key, entry]) => {
       const parsedEntry = parseLogEntry(entry);
-      if (parsedEntry.takenAt) logs[key] = parsedEntry;
+      if (hasLogContent(parsedEntry)) logs[key] = parsedEntry;
     });
     (cachedData.feedPosts || []).forEach((entry) => {
       const parsedPost = parseFeedPost(entry.id, entry);
@@ -2748,8 +2824,9 @@ function createLogEntry(
   hivTest = false,
   hivLocation = ""
 ) {
+  const takenAtIsValid = takenAt instanceof Date && !Number.isNaN(takenAt.getTime());
   return {
-    takenAt: takenAt.toISOString(),
+    takenAt: takenAtIsValid ? takenAt.toISOString() : "",
     notes: removeAutoEncounterNote(notes),
     pillsTaken: normalizePillsTaken(pillsTaken),
     refillStart,
@@ -2763,6 +2840,36 @@ function createLogEntry(
 
 function getLogTakenAt(entry) {
   return typeof entry === "string" ? entry : entry?.takenAt;
+}
+
+function hasDoseLogged(entry) {
+  return Boolean(getValidTakenAt(entry));
+}
+
+function getValidTakenAt(entry) {
+  const takenAt = getLogTakenAt(entry);
+  if (!takenAt) return "";
+  return Number.isNaN(new Date(takenAt).getTime()) ? "" : takenAt;
+}
+
+function hasLogContent(entry) {
+  return Boolean(
+    hasDoseLogged(entry) ||
+    getLogNotes(entry).trim() ||
+    hasHivTestLogged(entry) ||
+    hasSexLogged(entry) ||
+    isRefillStart(entry)
+  );
+}
+
+function removeDoseFromLogEntry(entry) {
+  if (!entry) return null;
+  const supportEntry = {
+    ...entry,
+    takenAt: "",
+    pillsTaken: 1,
+  };
+  return hasLogContent(supportEntry) ? supportEntry : null;
 }
 
 function getLogNotes(entry) {
@@ -3028,7 +3135,7 @@ function getPillsRemaining() {
     .filter(([key, entry]) => (
       key >= refillKey
       && key <= todayKey
-      && Boolean(getLogTakenAt(entry))
+      && hasDoseLogged(entry)
     ))
     .reduce((total, [, entry]) => total + getLogPillsTaken(entry), 0);
 
@@ -3161,6 +3268,7 @@ function parseInputTime(value) {
 }
 
 function getTimingDetail(loggedAt, date) {
+  if (!hasDoseLogged(loggedAt)) return "Not taken";
   const takenAt = new Date(getLogTakenAt(loggedAt));
   const scheduledAt = getScheduledDoseTime(date);
   if (!scheduledAt) return "PreP Stopped";
@@ -3250,6 +3358,7 @@ function getPreviousSchedule(changeDateKey) {
 }
 
 function isOutsideScheduleWindow(loggedAt, date) {
+  if (!hasDoseLogged(loggedAt)) return false;
   const takenAt = new Date(getLogTakenAt(loggedAt));
   const scheduledAt = getScheduledDoseTime(date);
   if (!scheduledAt) return false;
@@ -3278,7 +3387,7 @@ function getTakenStatusClass(timing) {
 }
 
 function isMissedDate(date, loggedAt) {
-  if (loggedAt) return false;
+  if (hasDoseLogged(loggedAt)) return false;
   if (isEndedDate(date)) return false;
 
   const todayDose = getTodayDoseTime(new Date());
